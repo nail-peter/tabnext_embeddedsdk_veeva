@@ -417,10 +417,12 @@
                 await initializeAnalyticsSdk(sdkConfig);
                 console.log('Analytics SDK initialized');
 
-                // Create dashboard exactly as in the official example
+                // Create dashboard exactly as in the official example with proper sizing
                 const dashboard = new AnalyticsDashboard({
                     parentIdOrElement: 'analytics-container',
-                    idOrApiName: config.dashboardId
+                    idOrApiName: config.dashboardId,
+                    height: '100%',
+                    width: '100%'
                 });
 
                 console.log('Dashboard object created, rendering...');
