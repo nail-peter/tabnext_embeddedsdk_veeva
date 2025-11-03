@@ -84,7 +84,9 @@ def callback():
 
     # Exchange code for access token with PKCE
     token_url = f"{SALESFORCE_LOGIN_URL}/services/oauth2/token"
-    token_data = {
+
+    # Try PKCE-only flow first (recommended for your setup)
+    token_data_pkce = {
         'grant_type': 'authorization_code',
         'client_id': SALESFORCE_CLIENT_ID,
         'redirect_uri': REDIRECT_URI,
@@ -92,7 +94,31 @@ def callback():
         'code_verifier': code_verifier
     }
 
-    response = requests.post(token_url, data=token_data)
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
+
+    print(f"Token URL: {token_url}")
+    print(f"PKCE Token data: {token_data_pkce}")
+
+    response = requests.post(token_url, data=token_data_pkce, headers=headers)
+
+    # If PKCE-only fails, try with client_secret as fallback
+    if response.status_code != 200 and SALESFORCE_CLIENT_SECRET:
+        print("PKCE-only failed, trying with client_secret...")
+
+        token_data_secret = {
+            'grant_type': 'authorization_code',
+            'client_id': SALESFORCE_CLIENT_ID,
+            'client_secret': SALESFORCE_CLIENT_SECRET,
+            'redirect_uri': REDIRECT_URI,
+            'code': code,
+            'code_verifier': code_verifier
+        }
+
+        print(f"Secret Token data: {token_data_secret}")
+        response = requests.post(token_url, data=token_data_secret, headers=headers)
 
     if response.status_code == 200:
         token_info = response.json()
@@ -111,7 +137,11 @@ def callback():
 
         return redirect(url_for('dashboard'))
     else:
-        return f"Token exchange failed: {response.text}", 400
+        # Enhanced error debugging
+        print(f"Token exchange failed. Status: {response.status_code}")
+        print(f"Response: {response.text}")
+        print(f"Response headers: {response.headers}")
+        return f"Token exchange failed (Status {response.status_code}): {response.text}", 400
 
 @app.route('/logout')
 def logout():
