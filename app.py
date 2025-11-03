@@ -1,6 +1,9 @@
 import os
 import json
 import requests
+import base64
+import hashlib
+import secrets
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -30,13 +33,24 @@ def index():
 
 @app.route('/login')
 def login():
-    """Initiate Salesforce OAuth flow"""
+    """Initiate Salesforce OAuth flow with PKCE"""
+    # Generate PKCE code verifier and challenge
+    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    ).decode('utf-8').rstrip('=')
+
+    # Store code verifier in session for callback
+    session['code_verifier'] = code_verifier
+
     auth_url = f"{SALESFORCE_LOGIN_URL}/services/oauth2/authorize"
     params = {
         'response_type': 'code',
         'client_id': SALESFORCE_CLIENT_ID,
         'redirect_uri': REDIRECT_URI,
-        'scope': 'api web refresh_token offline_access lightning'
+        'scope': 'api web refresh_token offline_access lightning',
+        'code_challenge': code_challenge,
+        'code_challenge_method': 'S256'
     }
 
     auth_query = '&'.join([f"{k}={v}" for k, v in params.items()])
@@ -44,19 +58,30 @@ def login():
 
 @app.route('/callback')
 def callback():
-    """Handle Salesforce OAuth callback"""
+    """Handle Salesforce OAuth callback with PKCE"""
     code = request.args.get('code')
-    if not code:
-        return "Authorization failed", 400
+    error = request.args.get('error')
 
-    # Exchange code for access token
+    if error:
+        error_description = request.args.get('error_description', '')
+        return f"Authorization failed: {error} - {error_description}", 400
+
+    if not code:
+        return "Authorization failed: No authorization code received", 400
+
+    # Get code verifier from session
+    code_verifier = session.get('code_verifier')
+    if not code_verifier:
+        return "Authorization failed: Missing PKCE code verifier", 400
+
+    # Exchange code for access token with PKCE
     token_url = f"{SALESFORCE_LOGIN_URL}/services/oauth2/token"
     token_data = {
         'grant_type': 'authorization_code',
         'client_id': SALESFORCE_CLIENT_ID,
-        'client_secret': SALESFORCE_CLIENT_SECRET,
         'redirect_uri': REDIRECT_URI,
-        'code': code
+        'code': code,
+        'code_verifier': code_verifier
     }
 
     response = requests.post(token_url, data=token_data)
