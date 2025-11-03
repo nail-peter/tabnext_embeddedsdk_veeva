@@ -57,7 +57,7 @@ def login():
         'response_type': 'code',
         'client_id': SALESFORCE_CLIENT_ID,
         'redirect_uri': REDIRECT_URI,
-        'scope': 'api web refresh_token offline_access lightning',
+        'scope': 'api web refresh_token offline_access lightning wave_api',
         'code_challenge': code_challenge,
         'code_challenge_method': 'S256'
     }
@@ -157,16 +157,18 @@ def tableau_config():
     if 'access_token' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
-    # Use any existing dashboard ID from your org
-    dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Performance_Overview_Full_Page')
-    org_url = os.environ.get('SALESFORCE_ORG_URL', session.get('instance_url'))
+    # Use the correct dashboard ID and org URL for yg-agentforce-factory
+    dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Sales_Cloud_Dashboard')
+    org_url = os.environ.get('SALESFORCE_ORG_URL', 'https://yg-agentforce-factory.lightning.force.com')
 
     config = {
         'instanceUrl': session.get('instance_url'),
         'orgUrl': org_url,
         'dashboardId': dashboard_id,
         'accessToken': session.get('access_token'),
-        'authCredential': session.get('access_token')
+        'authCredential': session.get('access_token'),
+        'sessionId': session.get('access_token'),
+        'apiVersion': '58.0'
     }
 
     return jsonify(config)

@@ -332,39 +332,70 @@
         }
 
         async function initializeTableauNextSDK(config) {
-            // Tableau Next SDK configuration matching your embed code
+            // Tableau Next Analytics SDK configuration
             const sdkConfig = {
                 authCredential: config.authCredential,
+                instanceUrl: config.instanceUrl,
                 orgUrl: config.orgUrl
             };
 
             try {
-                // Import Tableau Next SDK (this URL needs to be updated with the actual SDK source)
-                const { initializeAnalyticsSdk, AnalyticsDashboard } = await import('https://your-org.salesforce.com/analytics/wave/web/proto/sdk/analytics-sdk.js');
+                // Use the proper org-specific SDK URL for yg-agentforce-factory
+                const sdkUrl = `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`;
+                console.log('Loading SDK from:', sdkUrl);
 
-                // Initialize SDK
+                // Import Tableau Next Analytics SDK from org-specific URL
+                const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(sdkUrl);
+
+                // Initialize SDK with proper configuration
                 await initializeAnalyticsSdk(sdkConfig);
+                console.log('Analytics SDK initialized successfully');
 
-                // Create and render dashboard
+                // Create and render dashboard with enhanced error handling
                 const dashboard = new AnalyticsDashboard({
                     parentIdOrElement: 'analytics-container',
-                    idOrApiName: config.dashboardId
+                    idOrApiName: config.dashboardId,
+                    showHeader: true,
+                    showFilters: true
                 });
 
                 await dashboard.render();
+                console.log('Dashboard rendered successfully');
 
             } catch (sdkError) {
-                console.error('SDK loading error:', sdkError);
+                console.error('Tableau Next SDK loading error:', sdkError);
+                console.error('Error details:', {
+                    message: sdkError.message,
+                    stack: sdkError.stack,
+                    sdkUrl: `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
+                    config: sdkConfig
+                });
 
-                // Fallback to iframe method
+                // Enhanced fallback with multiple options
                 console.log('Falling back to iframe embedding...');
                 const container = document.getElementById('analytics-container');
+
+                // Try different iframe URL patterns for Tableau Next
+                const fallbackUrls = [
+                    `${config.orgUrl}/analytics/wave/dashboard/${config.dashboardId}`,
+                    `${config.instanceUrl}/analytics/wave/dashboard/${config.dashboardId}`,
+                    `${config.orgUrl}/lightning/r/Dashboard/${config.dashboardId}/view`
+                ];
+
                 container.innerHTML = `
-                    <iframe
-                        src="${config.orgUrl}/analytics/wave/dashboard/${config.dashboardId}"
-                        style="width: 100%; height: 100%; border: none;"
-                        title="Tableau Dashboard">
-                    </iframe>
+                    <div class="fallback-container">
+                        <p style="margin-bottom: 10px; color: #666;">
+                            <i class="slds-icon slds-icon-text-warning slds-icon_x-small"></i>
+                            Loading via iframe fallback...
+                        </p>
+                        <iframe
+                            src="${fallbackUrls[0]}"
+                            style="width: 100%; height: calc(100% - 30px); border: 1px solid #ddd; border-radius: 4px;"
+                            title="Tableau Dashboard (Fallback)"
+                            onload="console.log('Iframe loaded successfully')"
+                            onerror="console.error('Iframe failed to load')">
+                        </iframe>
+                    </div>
                 `;
             }
         }
