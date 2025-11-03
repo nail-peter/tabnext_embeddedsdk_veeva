@@ -192,7 +192,7 @@ def tableau_config():
         return jsonify({'error': 'Not authenticated'}), 401
 
     # Use the correct dashboard ID and org URL for yg-agentforce-factory
-    dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Performance_Overview_Full_Page')
+    dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Copy_of_Service_Agent_Analytics')
     org_url = os.environ.get('SALESFORCE_ORG_URL', 'https://yg-agentforce-factory.lightning.force.com')
 
     config = {
