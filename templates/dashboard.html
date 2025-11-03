@@ -395,11 +395,11 @@
         }
 
         /**
-         * Initialize Agentforce using direct URL approach
+         * Initialize Agentforce using exact working demo pattern
          */
         async function initializeAgentforce() {
             try {
-                console.log('🤖 Initializing Agentforce Analytics Agent...');
+                console.log('🤖 Initializing Agentforce Analytics Agent using working demo pattern...');
 
                 // Get the container element
                 const agentContainer = document.getElementById('agentforce-container');
@@ -407,41 +407,44 @@
                 // Clear any existing content
                 agentContainer.innerHTML = '';
 
-                // Create iframe for direct agent access
-                const agentIframe = document.createElement('iframe');
-                agentIframe.style.cssText = 'border: none; width: 100%; height: 100%; overflow: auto;';
-                agentIframe.src = 'about:blank';
+                // Store credentials in localStorage like the working demo
+                localStorage.setItem('frontdoor_url', config.authCredential);
+                localStorage.setItem('instance_url', config.orgUrl);
 
-                // Add iframe to container
-                agentContainer.appendChild(agentIframe);
+                console.log('🔗 Stored credentials in localStorage');
 
-                // Construct agent URL with your configured agent
-                const agentUrl = `${config.orgUrl}/lightning/n/Einstein_Copilot`;
-                const frontdoorUrl = `${config.orgUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/lightning/n/Einstein_Copilot')}`;
+                // Import AnalyticsAgent using exact working demo pattern
+                const { AnalyticsAgent } = await import(
+                    /* webpackIgnore: true */ '/static/js/analytics-sdk.js'
+                );
 
-                console.log('🔗 Loading agent at:', frontdoorUrl);
+                console.log('✅ AnalyticsAgent imported successfully');
 
-                // Load the agent
-                agentIframe.src = frontdoorUrl;
+                // Create agent using exact working demo pattern
+                const agent = new AnalyticsAgent({
+                    parentIdOrElement: agentContainer,
+                    idOrApiName: "Analytics_and_Visualization"  // Your configured agent
+                });
 
-                console.log('✅ Agentforce agent loaded successfully');
+                console.log('🔧 AnalyticsAgent created, rendering...');
+
+                // Render the agent
+                await agent.render();
+
+                console.log('✅ AnalyticsAgent rendered successfully');
 
             } catch (error) {
-                console.error('❌ Agentforce initialization failed:', error);
+                console.error('❌ AnalyticsAgent initialization failed:', error);
 
-                // Show error in the container
+                // Show error in the container like the working demo
                 const agentContainer = document.getElementById('agentforce-container');
                 agentContainer.innerHTML = `
                     <div style="padding: 20px; text-align: center; color: #666;">
-                        <p><strong>⚠️ Agentforce Loading Error</strong></p>
+                        <p class="error-message">Could not load Analytics Agent.</p>
                         <p style="font-size: 14px; margin-top: 10px;">${error.message}</p>
                         <p style="font-size: 12px; margin-top: 10px; color: #888;">
-                            Trying direct URL approach for agent access
+                            Make sure Analytics_and_Visualization agent is configured in your org
                         </p>
-                        <button onclick="window.open('${config.orgUrl}/lightning/n/Einstein_Copilot', '_blank')"
-                                style="background: #1B96FF; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px;">
-                            Open Agent in New Tab
-                        </button>
                     </div>
                 `;
             }
