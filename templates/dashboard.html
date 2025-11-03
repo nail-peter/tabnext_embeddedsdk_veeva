@@ -343,24 +343,65 @@
                 return;
             }
 
+            // Set up global error handler to catch SDK service registration errors
+            let serviceRegistrationErrorDetected = false;
+            const originalConsoleError = console.error;
+
+            // Capture console errors that indicate service registration issues
+            console.error = function(...args) {
+                const errorMessage = args.join(' ');
+                if (errorMessage.includes('No class registered for service') ||
+                    errorMessage.includes('service Function')) {
+                    serviceRegistrationErrorDetected = true;
+                    console.log('🔍 Global error handler detected SDK service registration error');
+                }
+                originalConsoleError.apply(console, args);
+            };
+
+            // Add window error listener for uncaught exceptions
+            const errorHandler = (event) => {
+                if (event.error && event.error.message &&
+                    (event.error.message.includes('No class registered for service') ||
+                     event.error.message.includes('service Function'))) {
+                    serviceRegistrationErrorDetected = true;
+                    console.log('🔍 Window error handler detected SDK service registration error');
+                    event.preventDefault(); // Prevent the error from bubbling up
+                }
+            };
+
+            window.addEventListener('error', errorHandler);
+
             try {
                 // Use the official Tableau Next SDK pattern
                 console.log('Attempting official Tableau Next SDK implementation...');
                 console.warn('Note: SDK loading may fail due to Salesforce CORS/CSP restrictions');
                 await initializeOfficialTableauNextSDK(config);
+
+                // Check if service registration error was detected during SDK initialization
+                if (serviceRegistrationErrorDetected) {
+                    throw new Error('SDK service registration failed - detected via error monitoring');
+                }
+
             } catch (sdkError) {
                 console.error('Official SDK failed:', sdkError);
                 console.log('Error type:', sdkError.name);
                 console.log('Error message:', sdkError.message);
 
                 // Check if it's a service registration error
-                if (sdkError.message && sdkError.message.includes('No class registered for service')) {
+                if ((sdkError.message && sdkError.message.includes('No class registered for service')) ||
+                    (sdkError.message && sdkError.message.includes('service Function')) ||
+                    (sdkError.message && sdkError.message.includes('service registration')) ||
+                    serviceRegistrationErrorDetected) {
                     console.log('🔧 Detected SDK service registration issue - trying direct iframe approach');
                     await initializeDirectIframeApproach(config);
                 } else {
                     console.log('💡 Tip: Add ?skipSDK=true to URL to skip SDK attempts');
                     await initializePopupDashboard(config);
                 }
+            } finally {
+                // Clean up error handlers
+                console.error = originalConsoleError;
+                window.removeEventListener('error', errorHandler);
             }
         }
 
