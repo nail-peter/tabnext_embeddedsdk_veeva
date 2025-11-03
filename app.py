@@ -51,8 +51,8 @@ def login():
     # Store code verifier in session for callback
     session['code_verifier'] = code_verifier
     print(SALESFORCE_LOGIN_URL)
-    #auth_url = f"{SALESFORCE_LOGIN_URL}/services/oauth2/authorize"
-    auth_url = f"https://login.salesforce.com/services/oauth2/authorize"
+    # Use org-specific login URL for external client apps
+    auth_url = f"https://yg-agentforce-factory.my.salesforce.com/services/oauth2/authorize"
     params = {
         'response_type': 'code',
         'client_id': SALESFORCE_CLIENT_ID,
@@ -84,8 +84,8 @@ def callback():
     if not code_verifier:
         return "Authorization failed: Missing PKCE code verifier", 400
 
-    # Exchange code for access token with PKCE
-    token_url = f"{SALESFORCE_LOGIN_URL}/services/oauth2/token"
+    # Exchange code for access token with PKCE - use org-specific URL
+    token_url = f"https://yg-agentforce-factory.my.salesforce.com/services/oauth2/token"
 
     # Try PKCE-only flow first (recommended for your setup)
     token_data_pkce = {
