@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boehringer Ingelheim Animal Health - Analytics Dashboard</title>
+    <title>Boehringer Ingelheim Animal Health - Tableau Next & Agentforce</title>
     <style>
         * {
             margin: 0;
@@ -13,205 +13,182 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
             padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
         }
 
-        .logo {
+        .header h1 {
+            color: #333;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .header-actions {
             display: flex;
+            gap: 1rem;
             align-items: center;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        .logo::before {
-            content: "🐾";
-            margin-right: 0.5rem;
-            font-size: 2rem;
         }
 
         .user-info {
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+            color: #666;
+            font-size: 0.9rem;
         }
 
         .logout-btn {
-            background: rgba(255, 255, 255, 0.2);
+            background: #dc3545;
             color: white;
             border: none;
             padding: 0.5rem 1rem;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background 0.3s;
+            font-size: 0.9rem;
+            transition: background 0.2s;
         }
 
         .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: #c82333;
         }
 
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 2rem;
-            padding: 2rem;
-            height: calc(100vh - 80px);
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            max-height: calc(100vh - 80px);
         }
 
-        .tableau-container {
+        .dashboard-section {
+            flex: 2;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            position: relative;
-        }
-
-        .tableau-header {
-            background: linear-gradient(135deg, #00A651 0%, #005F36 100%);
-            color: white;
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
-        .tableau-content {
-            height: calc(100% - 60px);
-            position: relative;
-        }
-
-        #tableau-dashboard {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .agentforce-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+        }
+
+        .dashboard-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-header h2 {
+            color: #333;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .dashboard-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        #dashboard-container {
+            flex: 1;
+            position: relative;
+            min-height: 500px;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(248, 249, 250, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .agentforce-section {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            max-width: 400px;
         }
 
         .agentforce-header {
-            background: linear-gradient(135deg, #FF6B35 0%, #F04A00 100%);
-            color: white;
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-        }
-
-        .agentforce-header::before {
-            content: "🤖";
-            margin-right: 0.5rem;
-            font-size: 1.5rem;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 1rem;
-            overflow-y: auto;
             background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
         }
 
-        .message {
-            margin-bottom: 1rem;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            max-width: 85%;
-        }
-
-        .message.user {
-            background: #007bff;
-            color: white;
-            margin-left: auto;
-            text-align: right;
-        }
-
-        .message.agent {
-            background: white;
+        .agentforce-header h2 {
             color: #333;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .chat-input-container {
-            padding: 1rem;
-            background: white;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 25px;
-            outline: none;
-            font-size: 0.9rem;
-        }
-
-        .send-btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s;
-        }
-
-        .send-btn:hover {
-            background: #0056b3;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 1rem;
-            color: #666;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
         }
 
         .quick-prompts {
-            padding: 1rem;
-            background: #f8f9fa;
-            border-top: 1px solid #eee;
-        }
-
-        .quick-prompts h4 {
-            margin-bottom: 0.5rem;
-            color: #666;
-            font-size: 0.9rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
         }
 
         .prompt-btn {
             background: #e9ecef;
             border: none;
-            padding: 0.5rem 0.75rem;
-            margin: 0.25rem;
-            border-radius: 15px;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
             cursor: pointer;
-            font-size: 0.8rem;
-            transition: background 0.3s;
+            transition: background 0.2s;
         }
 
         .prompt-btn:hover {
@@ -219,900 +196,270 @@
             color: white;
         }
 
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-                gap: 1rem;
+        .agentforce-container {
+            flex: 1;
+            border: none;
+            width: 100%;
+            min-height: 500px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
             }
 
-            .agentforce-container {
-                height: 400px;
+            .agentforce-section {
+                max-width: none;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Header -->
     <div class="header">
-        <div class="logo">
-            Boehringer Ingelheim Animal Health
-        </div>
-        <div class="user-info">
+        <h1>🐾 Boehringer Ingelheim Animal Health Analytics</h1>
+        <div class="header-actions">
             {% if user_info %}
-                <span>Welcome, {{ user_info.display_name or user_info.username }}</span>
+            <div class="user-info">
+                Welcome, {{ user_info.get('display_name', user_info.get('username', 'User')) }}
+            </div>
             {% endif %}
-            <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
     </div>
 
-    <div class="container">
-        <div class="tableau-container">
-            <div class="tableau-header">
-                📊 Tableau Next Dashboard - Territory Analytics
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Tableau Dashboard Section -->
+        <div class="dashboard-section">
+            <div class="dashboard-header">
+                <h2>📊 Tableau Next Dashboard</h2>
+                <div class="dashboard-status status-loading" id="dashboard-status">
+                    Initializing...
+                </div>
             </div>
-            <div class="tableau-content">
-                <div id="analytics-container" style="width: 100%; height: 100%;"></div>
+            <div id="dashboard-container">
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner"></div>
+                    <div>Loading Tableau Next Analytics...</div>
+                </div>
             </div>
         </div>
 
-        <div class="agentforce-container">
+        <!-- Agentforce Section -->
+        <div class="agentforce-section">
             <div class="agentforce-header">
-                Sidekick Agent
-            </div>
-
-            <div class="quick-prompts">
-                <h4>Quick Actions:</h4>
-                <button class="prompt-btn" onclick="sendQuickPrompt('Help me prioritize and plan my week')">
-                    📅 Plan My Week
-                </button>
-                <button class="prompt-btn" onclick="sendQuickPrompt('Show me new clinics added in my territory in the last 60 days')">
-                    🏥 New Clinics
-                </button>
-                <button class="prompt-btn" onclick="sendQuickPrompt('Which brands or SKUs are underperforming vs last year in my territory?')">
-                    📉 Underperforming Products
-                </button>
-                <button class="prompt-btn" onclick="sendQuickPrompt('Which clinics are top performers for Nexgard?')">
-                    🏆 Top Nexgard Clinics
-                </button>
-            </div>
-
-            <div class="chat-messages" id="chatMessages">
-                <div class="message agent">
-                    Hello! I'm your Sidekick Agent for Boehringer Ingelheim Animal Health. I can help you with territory planning, clinic insights, product performance, and loyalty program analysis. How can I assist you today?
+                <h2>🤖 Agentforce Assistant</h2>
+                <p style="color: #666; font-size: 0.9rem; margin: 0;">Ask questions about your animal health data</p>
+                <div class="quick-prompts">
+                    <button class="prompt-btn" onclick="sendQuickPrompt('Show me top performing products')">Top Products</button>
+                    <button class="prompt-btn" onclick="sendQuickPrompt('Which clinics have declining sales?')">Declining Sales</button>
+                    <button class="prompt-btn" onclick="sendQuickPrompt('Analyze territory performance')">Territory Analysis</button>
+                    <button class="prompt-btn" onclick="sendQuickPrompt('Competitor analysis summary')">Competitor Intel</button>
                 </div>
             </div>
-
-            <div class="loading" id="loading">
-                Agent is thinking...
-            </div>
-
-            <div class="chat-input-container">
-                <input type="text"
-                       class="chat-input"
-                       id="chatInput"
-                       placeholder="Ask about your territory, clinics, or product performance..."
-                       onkeypress="handleKeyPress(event)">
-                <button class="send-btn" onclick="sendMessage()">
-                    ➤
-                </button>
-            </div>
+            <iframe
+                id="agentforce-container"
+                class="agentforce-container"
+                src="about:blank"
+                frameborder="0">
+            </iframe>
         </div>
     </div>
 
     <script>
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeTableau();
-        });
+        let dashboardInitialized = false;
+        let config = null;
 
-        async function initializeTableau() {
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Initializing Boehringer Ingelheim Animal Health Dashboard');
+
             try {
+                // Get configuration from backend
                 const response = await fetch('/api/tableau-config');
-                const config = await response.json();
-
-                if (config.error) {
-                    console.error('Tableau config error:', config.error);
-                    return;
+                if (!response.ok) {
+                    throw new Error(`Configuration failed: ${response.status}`);
                 }
 
-                // Use proper Tableau Next SDK embedding
-                await initializeTableauNextSDK(config);
+                config = await response.json();
+                console.log('✅ Configuration loaded:', {
+                    orgUrl: config.orgUrl,
+                    dashboardId: config.dashboardId,
+                    hasAuthCredential: !!config.authCredential
+                });
+
+                // Initialize both components
+                await Promise.all([
+                    initializeTableauDashboard(),
+                    initializeAgentforce()
+                ]);
 
             } catch (error) {
-                console.error('Error initializing Tableau:', error);
-                // Fallback: show error message in container
-                const container = document.getElementById('analytics-container');
-                container.innerHTML = `
-                    <div style="padding: 20px; text-align: center; color: #666;">
-                        <h3>Dashboard Loading</h3>
-                        <p>Setting up Tableau Next analytics...</p>
-                        <p style="font-size: 0.9em;">Dashboard ID: ${config.dashboardId}</p>
-                    </div>
-                `;
+                console.error('❌ Initialization failed:', error);
+                showError('Failed to initialize dashboard: ' + error.message);
             }
-        }
+        });
 
-        async function initializeTableauNextSDK(config) {
-            console.log('Initializing Tableau Next with config:', config);
-
-            // Check if we should skip SDK attempts (for debugging)
-            const skipSDK = new URLSearchParams(window.location.search).get('skipSDK') === 'true';
-
-            if (skipSDK) {
-                console.log('Skipping SDK loading, going directly to popup approach');
-                await initializePopupDashboard(config);
+        /**
+         * Initialize Tableau Dashboard using the working pattern from the demo
+         */
+        async function initializeTableauDashboard() {
+            if (dashboardInitialized) {
+                console.log('Dashboard already initialized, skipping...');
                 return;
             }
 
-            // Set up global error handler to catch SDK service registration errors
-            let serviceRegistrationErrorDetected = false;
-            const originalConsoleError = console.error;
-
-            // Capture console errors that indicate service registration issues
-            console.error = function(...args) {
-                const errorMessage = args.join(' ');
-                if (errorMessage.includes('No class registered for service') ||
-                    errorMessage.includes('service Function')) {
-                    serviceRegistrationErrorDetected = true;
-                    console.log('🔍 Global error handler detected SDK service registration error');
-                }
-                originalConsoleError.apply(console, args);
-            };
-
-            // Add window error listener for uncaught exceptions
-            const errorHandler = (event) => {
-                if (event.error && event.error.message &&
-                    (event.error.message.includes('No class registered for service') ||
-                     event.error.message.includes('service Function'))) {
-                    serviceRegistrationErrorDetected = true;
-                    console.log('🔍 Window error handler detected SDK service registration error');
-                    event.preventDefault(); // Prevent the error from bubbling up
-                }
-            };
-
-            window.addEventListener('error', errorHandler);
-
             try {
-                // Use the official Tableau Next SDK pattern
-                console.log('Attempting official Tableau Next SDK implementation...');
-                console.warn('Note: SDK loading may fail due to Salesforce CORS/CSP restrictions');
-                await initializeOfficialTableauNextSDK(config);
+                updateStatus('loading', 'Loading SDK...');
 
-                // Check if service registration error was detected during SDK initialization
-                if (serviceRegistrationErrorDetected) {
-                    throw new Error('SDK service registration failed - detected via error monitoring');
-                }
+                // Import the Analytics Embedding SDK using the exact working pattern
+                console.log('📦 Loading Analytics Embedding SDK...');
 
-            } catch (sdkError) {
-                console.error('Official SDK failed:', sdkError);
-                console.log('Error type:', sdkError.name);
-                console.log('Error message:', sdkError.message);
-
-                // Check if it's a service registration error
-                if ((sdkError.message && sdkError.message.includes('No class registered for service')) ||
-                    (sdkError.message && sdkError.message.includes('service Function')) ||
-                    (sdkError.message && sdkError.message.includes('service registration')) ||
-                    serviceRegistrationErrorDetected) {
-                    console.log('🔧 Detected SDK service registration issue - trying direct iframe approach');
-                    await initializeDirectIframeApproach(config);
-                } else {
-                    console.log('💡 Tip: Add ?skipSDK=true to URL to skip SDK attempts');
-                    await initializePopupDashboard(config);
-                }
-            } finally {
-                // Clean up error handlers
-                console.error = originalConsoleError;
-                window.removeEventListener('error', errorHandler);
-            }
-        }
-
-        async function initializeOfficialTableauNextSDK(config) {
-            console.log('Using official Tableau Next SDK pattern');
-
-            // Create the exact configuration structure from Salesforce documentation
-            const sdkConfig = {
-                authCredential: config.authCredential,
-                orgUrl: config.orgUrl
-            };
-
-            console.log('SDK Config:', sdkConfig);
-
-            try {
-                // Method 1: Try to use locally installed SDK first
-                console.log('Attempting to load locally installed SDK...');
-                let initializeAnalyticsSdk, AnalyticsDashboard;
-
-                try {
-                    // Try to import from locally hosted SDK
-                    const sdk = await import('./static/js/analytics-sdk.js');
-                    initializeAnalyticsSdk = sdk.initializeAnalyticsSdk;
-                    AnalyticsDashboard = sdk.AnalyticsDashboard;
-                    console.log('✅ Loaded SDK from local installation');
-                } catch (localError) {
-                    console.warn('Local SDK not found, trying remote URLs...');
-
-                    // Fallback: Try multiple possible remote SDK URLs
-                    const possibleSdkUrls = [
-                        `${config.instanceUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
-                        `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
-                        `${config.instanceUrl}/resource/analytics-sdk`,
-                        `${config.orgUrl}/resource/analytics-sdk`
-                    ];
-
-                    let sdkLoaded = false;
-                    let lastError = null;
-
-                    for (const sdkSource of possibleSdkUrls) {
-                        try {
-                            console.log('Trying SDK from:', sdkSource);
-
-                            // Use dynamic import as in the official example
-                            const sdk = await import(sdkSource);
-                            console.log('SDK imported successfully from:', sdkSource);
-                            sdkLoaded = true;
-                            break; // Exit the loop on success
-
-                        } catch (urlError) {
-                            console.warn(`Failed to load SDK from ${sdkSource}:`, urlError);
-                            lastError = urlError;
-                            continue; // Try the next URL
-                        }
-                    }
-
-                    if (!sdkLoaded) {
-                        throw lastError || new Error('All remote SDK URLs failed');
-                    }
-                }
-
-                // Initialize the SDK exactly as in the official documentation
-                console.log('Initializing Analytics SDK with config:', sdkConfig);
-
-                try {
-                    await initializeAnalyticsSdk(sdkConfig);
-                    console.log('Analytics SDK initialized successfully');
-
-                    // Add a small delay to ensure SDK is fully ready
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    console.log('SDK ready delay completed');
-
-                } catch (sdkInitError) {
-                    console.error('SDK initialization failed:', sdkInitError);
-                    throw new Error(`SDK initialization failed: ${sdkInitError.message}`);
-                }
-
-                // Create dashboard exactly as in the official example with proper sizing
-                console.log('Creating dashboard with ID:', config.dashboardId);
-
-                let dashboard;
-                try {
-                    dashboard = new AnalyticsDashboard({
-                        parentIdOrElement: 'analytics-container',
-                        idOrApiName: config.dashboardId,
-                        height: '100%',
-                        width: '100%'
-                    });
-                    console.log('Dashboard object created successfully');
-                } catch (dashboardCreateError) {
-                    console.error('Dashboard creation failed:', dashboardCreateError);
-                    throw new Error(`Dashboard creation failed: ${dashboardCreateError.message}`);
-                }
-
-                console.log('Starting dashboard rendering...');
-
-                // Show loading indicator
-                const container = document.getElementById('analytics-container');
-                container.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;">
-                        <div style="width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #1B96FF; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
-                        <p style="color: #666; font-size: 16px;">Loading Tableau Dashboard...</p>
-                        <p style="color: #888; font-size: 14px;">SDK initialized successfully, rendering content...</p>
-                    </div>
-                `;
-
-                // Add spin animation if not already present
-                if (!document.getElementById('dashboard-spin-style')) {
-                    const style = document.createElement('style');
-                    style.id = 'dashboard-spin-style';
-                    style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-                    document.head.appendChild(style);
-                }
-
-                // Add timeout and better error handling for rendering
-                try {
-                    console.log('Calling dashboard.render()...');
-
-                    // Set a longer timeout for rendering (60 seconds)
-                    const renderPromise = dashboard.render();
-                    const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Dashboard render timeout after 60 seconds')), 60000)
-                    );
-
-                    console.log('Waiting for dashboard render to complete...');
-
-                    await Promise.race([renderPromise, timeoutPromise]);
-                    console.log('✅ Dashboard rendered successfully using official SDK!');
-
-                    // Check if content actually appeared
-                    setTimeout(() => {
-                        const container = document.getElementById('analytics-container');
-                        const hasContent = container && container.children.length > 0;
-                        console.log('Dashboard container check:', {
-                            containerExists: !!container,
-                            hasChildren: hasContent,
-                            innerHTML: container ? container.innerHTML.substring(0, 200) + '...' : 'No container'
-                        });
-
-                        if (!hasContent) {
-                            console.warn('⚠️ Dashboard rendered but no content visible. This may indicate:');
-                            console.warn('- Dashboard ID does not exist in Salesforce org');
-                            console.warn('- User lacks permissions to view the dashboard');
-                            console.warn('- Dashboard has no data or widgets');
-                            console.warn('- Network issues preventing dashboard content load');
-
-                            // Show a helpful message to user
-                            container.innerHTML = `
-                                <div style="padding: 40px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px; margin: 20px;">
-                                    <h3 style="color: #FF6B35; margin-bottom: 20px;">🔍 Dashboard Loading Issue</h3>
-                                    <p style="margin-bottom: 15px;"><strong>SDK loaded successfully, but dashboard content is not visible.</strong></p>
-                                    <div style="text-align: left; max-width: 500px; margin: 0 auto;">
-                                        <p><strong>Possible causes:</strong></p>
-                                        <ul style="padding-left: 20px;">
-                                            <li>Dashboard ID "<code>Performance_Overview_Full_Page</code>" doesn't exist in your Salesforce org</li>
-                                            <li>User permissions: Need Analytics/Tableau dashboard access</li>
-                                            <li>Dashboard has no data or widgets configured</li>
-                                            <li>Network connectivity issues</li>
-                                        </ul>
-                                        <p style="margin-top: 20px;"><strong>Next steps:</strong></p>
-                                        <ol style="padding-left: 20px;">
-                                            <li>Verify dashboard exists in Analytics Studio</li>
-                                            <li>Check user permissions for Analytics</li>
-                                            <li>Try with a different dashboard ID</li>
-                                        </ol>
-                                    </div>
-                                    <button onclick="initializePopupDashboard({instanceUrl: '${config.instanceUrl}', accessToken: '${config.accessToken}', dashboardId: '${config.dashboardId}'})"
-                                            style="background: #1B96FF; color: white; border: none; padding: 12px 24px; border-radius: 6px; margin-top: 20px; cursor: pointer;">
-                                        🔗 Try Popup Approach Instead
-                                    </button>
-                                </div>
-                            `;
-                        }
-                    }, 3000);
-
-                } catch (renderError) {
-                    console.error('❌ Dashboard rendering failed:', renderError);
-                    throw renderError;
-                }
-
-            } catch (importError) {
-                console.error('All SDK loading methods failed:', importError);
-                console.log('SDK loading is blocked by CORS/CSP policies');
-
-                // Since SDK loading consistently fails due to Salesforce CSP restrictions,
-                // go directly to the popup approach which is more reliable
-                throw importError;
-            }
-        }
-
-        async function loadSDKViaScriptTag(config, sdkConfig) {
-            return new Promise((resolve, reject) => {
-                // Create script element for SDK
-                const script = document.createElement('script');
-                script.type = 'module';
-                script.innerHTML = `
-                    const config = {
-                        authCredential: '${config.authCredential}',
-                        orgUrl: '${config.orgUrl}'
-                    };
-
-                    try {
-                        const { initializeAnalyticsSdk, AnalyticsDashboard } = await import('${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js');
-                        await initializeAnalyticsSdk(config);
-                        const dashboard = new AnalyticsDashboard({
-                            parentIdOrElement: 'analytics-container',
-                            idOrApiName: '${config.dashboardId}'
-                        });
-                        await dashboard.render();
-                        console.log('✅ Dashboard rendered via script tag!');
-                        window.tableauDashboardLoaded = true;
-                    } catch (error) {
-                        console.error('Script tag SDK failed:', error);
-                        window.tableauDashboardError = error;
-                    }
-                `;
-
-                script.onload = () => {
-                    // Check if dashboard loaded successfully
-                    setTimeout(() => {
-                        if (window.tableauDashboardLoaded) {
-                            resolve();
-                        } else if (window.tableauDashboardError) {
-                            reject(window.tableauDashboardError);
-                        } else {
-                            reject(new Error('Script tag method timeout'));
-                        }
-                    }, 5000);
-                };
-
-                script.onerror = (error) => {
-                    console.error('Script tag loading failed:', error);
-                    reject(error);
-                };
-
-                document.head.appendChild(script);
-            });
-        }
-
-        function loadSDKViaScript(config) {
-            return new Promise((resolve, reject) => {
-                // Create script tag to load SDK (avoids CORS issues)
-                const script = document.createElement('script');
-                script.src = `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`;
-                script.crossOrigin = 'anonymous';
-
-                script.onload = async () => {
-                    try {
-                        console.log('SDK script loaded successfully');
-
-                        // Check if SDK is available globally
-                        if (window.AnalyticsSDK) {
-                            await window.AnalyticsSDK.initializeAnalyticsSdk({
-                                authCredential: config.authCredential,
-                                instanceUrl: config.instanceUrl,
-                                orgUrl: config.orgUrl
-                            });
-
-                            const dashboard = new window.AnalyticsSDK.AnalyticsDashboard({
-                                parentIdOrElement: 'analytics-container',
-                                idOrApiName: config.dashboardId,
-                                showHeader: true,
-                                showFilters: true
-                            });
-
-                            await dashboard.render();
-                            resolve();
-                        } else {
-                            reject(new Error('SDK not available globally'));
-                        }
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-
-                script.onerror = () => {
-                    reject(new Error('Failed to load SDK script'));
-                };
-
-                document.head.appendChild(script);
-            });
-        }
-
-        async function initializeAuthenticatedIframe(config) {
-            console.log('Using authenticated iframe approach');
-            console.log('Config received:', config);
-
-            const container = document.getElementById('analytics-container');
-
-            // Try multiple URL patterns for Tableau Next embedding
-            const urlPatterns = [
-                // Method 1: Frontdoor URL with return to dashboard
-                `${config.instanceUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/analytics/wave/dashboard/' + config.dashboardId)}`,
-
-                // Method 2: Direct dashboard URL with session
-                `${config.orgUrl}/analytics/wave/dashboard/${config.dashboardId}?sessionId=${config.accessToken}`,
-
-                // Method 3: Lightning dashboard URL
-                `${config.orgUrl}/lightning/r/Dashboard/${config.dashboardId}/view`,
-
-                // Method 4: Analytics wave URL
-                `${config.instanceUrl}/analytics/wave/dashboard/${config.dashboardId}`
-            ];
-
-            // Try loading with the first URL pattern
-            const primaryUrl = urlPatterns[0];
-            console.log('Loading iframe with URL:', primaryUrl);
-
-            container.innerHTML = `
-                <div class="iframe-container" style="width: 100%; height: 100%; position: relative;">
-                    <div id="loading-indicator" style="
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        text-align: center;
-                        color: #666;
-                        z-index: 10;
-                    ">
-                        <div class="slds-spinner slds-spinner_medium" style="margin-bottom: 10px;">
-                            <div class="slds-spinner__dot-a"></div>
-                            <div class="slds-spinner__dot-b"></div>
-                        </div>
-                        <p>Loading Tableau Dashboard...</p>
-                    </div>
-                    <iframe
-                        id="tableau-iframe"
-                        src="${primaryUrl}"
-                        style="width: 100%; height: 100%; border: none; background: white;"
-                        title="Tableau Dashboard"
-                        allow="fullscreen"
-                        onload="handleIframeLoad()"
-                        onerror="handleIframeError()">
-                    </iframe>
-                </div>
-            `;
-
-            // Add global functions for iframe handling
-            window.handleIframeLoad = function() {
-                console.log('Iframe loaded successfully');
-                const loadingIndicator = document.getElementById('loading-indicator');
-                if (loadingIndicator) {
-                    loadingIndicator.style.display = 'none';
-                }
-            };
-
-            window.handleIframeError = function() {
-                console.error('Iframe failed to load, trying fallback URLs');
-                tryFallbackUrls(urlPatterns.slice(1), 1);
-            };
-
-            // Function to try fallback URLs
-            function tryFallbackUrls(urls, index) {
-                if (index >= urls.length) {
-                    console.error('All iframe URL patterns failed');
-                    showErrorMessage();
-                    return;
-                }
-
-                const iframe = document.getElementById('tableau-iframe');
-                const fallbackUrl = urls[index - 1];
-                console.log(`Trying fallback URL ${index}:`, fallbackUrl);
-
-                iframe.src = fallbackUrl;
-
-                // Set timeout to try next URL if this one fails
-                setTimeout(() => {
-                    tryFallbackUrls(urls, index + 1);
-                }, 5000);
-            }
-
-            function showErrorMessage() {
-                container.innerHTML = `
-                    <div style="padding: 20px; text-align: center; color: #666;">
-                        <h3>Dashboard Loading Issue</h3>
-                        <p>Unable to load the Tableau dashboard. This may be due to:</p>
-                        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
-                            <li>Dashboard permissions</li>
-                            <li>Network connectivity</li>
-                            <li>Salesforce session timeout</li>
-                        </ul>
-                        <button onclick="location.reload()" style="margin-top: 15px; padding: 8px 16px;">
-                            Retry
-                        </button>
-                    </div>
-                `;
-            }
-
-            console.log('Authenticated iframe initialized');
-        }
-
-        async function initializePopupDashboard(config) {
-            console.log('Setting up popup dashboard approach');
-
-            const container = document.getElementById('analytics-container');
-
-            // Create a user-friendly interface for opening the dashboard
-            container.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; text-align: center; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                    <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 500px;">
-                        <div style="margin-bottom: 20px;">
-                            <svg width="64" height="64" viewBox="0 0 64 64" style="margin-bottom: 16px;">
-                                <rect width="64" height="64" rx="8" fill="#1B96FF"/>
-                                <path d="M16 24h32v4H16zm0 8h24v4H16zm0 8h28v4H16z" fill="white"/>
-                            </svg>
-                        </div>
-
-                        <h2 style="margin: 0 0 16px 0; color: #333; font-size: 24px; font-weight: 600;">
-                            Tableau Next Dashboard
-                        </h2>
-
-                        <p style="margin: 0 0 24px 0; color: #666; line-height: 1.5;">
-                            Due to Salesforce security policies, the dashboard will open in a new window for the best experience.
-                        </p>
-
-                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                            <button
-                                onclick="openDashboardPopup('${config.instanceUrl}', '${config.accessToken}', '${config.dashboardId}')"
-                                style="
-                                    background: #1B96FF;
-                                    color: white;
-                                    border: none;
-                                    padding: 12px 24px;
-                                    border-radius: 6px;
-                                    font-size: 16px;
-                                    font-weight: 500;
-                                    cursor: pointer;
-                                    transition: background 0.2s;
-                                "
-                                onmouseover="this.style.background='#0678d4'"
-                                onmouseout="this.style.background='#1B96FF'"
-                            >
-                                📊 Open Dashboard
-                            </button>
-
-                            <button
-                                onclick="tryEmbeddedView('${config.instanceUrl}', '${config.accessToken}', '${config.dashboardId}')"
-                                style="
-                                    background: #fff;
-                                    color: #1B96FF;
-                                    border: 2px solid #1B96FF;
-                                    padding: 10px 24px;
-                                    border-radius: 6px;
-                                    font-size: 16px;
-                                    font-weight: 500;
-                                    cursor: pointer;
-                                    transition: all 0.2s;
-                                "
-                                onmouseover="this.style.background='#f8f9fa'"
-                                onmouseout="this.style.background='#fff'"
-                            >
-                                🔗 Try Embedded View
-                            </button>
-                        </div>
-
-                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
-                            <small style="color: #888; line-height: 1.4;">
-                                Dashboard ID: <code style="background: #f1f3f4; padding: 2px 6px; border-radius: 3px;">${config.dashboardId}</code>
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Add global functions for dashboard interaction
-            window.openDashboardPopup = function(instanceUrl, accessToken, dashboardId) {
-                const frontdoorUrl = instanceUrl + '/secur/frontdoor.jsp?sid=' + accessToken + '&retURL=' + encodeURIComponent('/analytics/wave/dashboard/' + dashboardId);
-
-                const popup = window.open(
-                    frontdoorUrl,
-                    'tableau-dashboard',
-                    'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
+                const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(
+                    /* webpackIgnore: true */ './static/js/analytics-sdk.js'
                 );
 
-                if (popup) {
-                    popup.focus();
-                    console.log('Dashboard popup opened successfully');
-                } else {
-                    alert('Popup blocked! Please allow popups for this site and try again.');
-                }
-            };
+                console.log('✅ SDK loaded successfully');
+                updateStatus('loading', 'Initializing SDK...');
 
-            window.tryEmbeddedView = function(instanceUrl, accessToken, dashboardId) {
-                console.log('Attempting embedded view...');
+                // Prepare configuration exactly like the working demo
+                const sdkConfig = {
+                    authCredential: config.authCredential,
+                    orgUrl: config.orgUrl
+                };
 
-                // Try a different approach using a server-side proxy
-                const container = document.getElementById('analytics-container');
-                container.innerHTML =
-                    '<div style="height: 100%; position: relative;">' +
-                        '<div style="position: absolute; top: 10px; right: 10px; z-index: 1000;">' +
-                            '<button onclick="initializePopupDashboard({instanceUrl: \'' + instanceUrl + '\', accessToken: \'' + accessToken + '\', dashboardId: \'' + dashboardId + '\'})" ' +
-                                    'style="background: #ff6b6b; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">' +
-                                '← Back to Options' +
-                            '</button>' +
-                        '</div>' +
-                        '<div style="padding: 20px; text-align: center; margin-top: 50px;">' +
-                            '<h3 style="color: #666;">Embedded View Attempt</h3>' +
-                            '<p style="color: #888; margin-bottom: 20px;">Trying to load dashboard in embedded mode...</p>' +
-                            '<div style="margin: 20px 0;">' +
-                                '<div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1B96FF; border-radius: 50%; animation: spin 1s linear infinite;"></div>' +
-                            '</div>' +
-                            '<div style="margin-top: 30px; background: #f8f9fa; padding: 15px; border-radius: 6px; max-width: 400px; margin-left: auto; margin-right: auto;">' +
-                                '<p style="margin: 0; color: #666; font-size: 14px;">' +
-                                    '<strong>Note:</strong> If this doesn\'t work within 10 seconds, please use the "Open Dashboard" button for the best experience.' +
-                                '</p>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>';
+                console.log('🔧 Initializing SDK with config:', sdkConfig);
 
-                // Add CSS animation for spinner
-                if (!document.getElementById('spinner-style')) {
-                    const style = document.createElement('style');
-                    style.id = 'spinner-style';
-                    style.textContent =
-                        '@keyframes spin {' +
-                            '0% { transform: rotate(0deg); }' +
-                            '100% { transform: rotate(360deg); }' +
-                        '}';
-                    document.head.appendChild(style);
-                }
+                // Initialize the SDK
+                await initializeAnalyticsSdk(sdkConfig);
+                console.log('✅ SDK initialized successfully');
 
-                // Try to create an iframe with different approach after a delay
-                setTimeout(() => {
-                    const iframe = document.createElement('iframe');
-                    iframe.src = '/api/dashboard-proxy?dashboardId=' + dashboardId + '&token=' + accessToken;
-                    iframe.style.cssText = 'width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0;';
-                    iframe.title = 'Tableau Dashboard (Proxy)';
+                updateStatus('loading', 'Creating dashboard...');
 
-                    iframe.onload = () => {
-                        console.log('Proxy iframe loaded');
-                    };
+                // Get direct DOM reference (like the working demo)
+                const dashboardContainer = document.getElementById('dashboard-container');
 
-                    iframe.onerror = () => {
-                        console.error('Proxy iframe failed');
-                        setTimeout(() => {
-                            initializePopupDashboard({instanceUrl, accessToken, dashboardId});
-                        }, 2000);
-                    };
-
-                    container.appendChild(iframe);
-                }, 2000);
-
-                // Fallback to popup after 10 seconds
-                setTimeout(() => {
-                    if (container.querySelector('iframe')) {
-                        // If iframe is there but might not be working properly
-                        const fallbackDiv = document.createElement('div');
-                        fallbackDiv.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px;';
-                        fallbackDiv.innerHTML = 'Having trouble? <a href="#" onclick="window.openDashboardPopup(\'' + instanceUrl + '\', \'' + accessToken + '\', \'' + dashboardId + '\'); return false;" style="color: #1B96FF; text-decoration: underline;">Open in popup instead</a>';
-                        container.appendChild(fallbackDiv);
-                    }
-                }, 10000);
-            };
-
-            console.log('Popup dashboard interface initialized');
-        }
-
-        async function initializeDirectIframeApproach(config) {
-            console.log('Using direct iframe approach for dashboard embedding');
-
-            const container = document.getElementById('analytics-container');
-
-            // Create authenticated URLs for direct iframe embedding
-            const dashboardUrls = [
-                // Primary: Frontdoor URL with dashboard redirect
-                `${config.instanceUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/analytics/wave/dashboard/' + config.dashboardId)}`,
-
-                // Alternative: Direct dashboard URL with session
-                `${config.orgUrl}/analytics/wave/dashboard/${config.dashboardId}?sessionId=${config.accessToken}`,
-
-                // Lightning approach
-                `${config.orgUrl}/lightning/r/Dashboard/${config.dashboardId}/view`
-            ];
-
-            console.log('Trying direct iframe with authenticated URLs');
-
-            // Try the first URL and provide fallbacks
-            let currentUrlIndex = 0;
-
-            function loadIframe(urlIndex = 0) {
-                if (urlIndex >= dashboardUrls.length) {
-                    // All URLs failed, show popup interface
-                    console.warn('All iframe URLs failed, falling back to popup');
-                    initializePopupDashboard(config);
-                    return;
-                }
-
-                const iframeUrl = dashboardUrls[urlIndex];
-                console.log(`Trying iframe URL ${urlIndex + 1}:`, iframeUrl);
-
-                container.innerHTML = `
-                    <div style="position: relative; width: 100%; height: 100%;">
-                        <div id="iframe-loading" style="
-                            position: absolute;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            text-align: center;
-                            z-index: 10;
-                            background: rgba(255,255,255,0.9);
-                            padding: 20px;
-                            border-radius: 8px;
-                        ">
-                            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1B96FF; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
-                            <p style="margin: 0; color: #666;">Loading Dashboard...</p>
-                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #888;">Attempt ${urlIndex + 1} of ${dashboardUrls.length}</p>
-                        </div>
-                        <iframe
-                            id="dashboard-iframe"
-                            src="${iframeUrl}"
-                            style="width: 100%; height: 100%; border: none; background: white;"
-                            title="Tableau Dashboard"
-                            onload="handleDirectIframeLoad()"
-                            onerror="handleDirectIframeError(${urlIndex})">
-                        </iframe>
-                    </div>
-                `;
-            }
-
-            // Global functions for iframe handling
-            window.handleDirectIframeLoad = function() {
-                console.log('✅ Direct iframe loaded successfully');
-                const loadingDiv = document.getElementById('iframe-loading');
-                if (loadingDiv) {
-                    loadingDiv.style.display = 'none';
-                }
-            };
-
-            window.handleDirectIframeError = function(urlIndex) {
-                console.warn(`Iframe URL ${urlIndex + 1} failed, trying next...`);
-                setTimeout(() => {
-                    loadIframe(urlIndex + 1);
-                }, 2000);
-            };
-
-            // Start loading with the first URL
-            loadIframe(0);
-
-            // Set a timeout to try next URL if current one doesn't load
-            setTimeout(() => {
-                const loadingDiv = document.getElementById('iframe-loading');
-                if (loadingDiv && loadingDiv.style.display !== 'none') {
-                    console.log('Iframe taking too long, trying next URL...');
-                    loadIframe(1);
-                }
-            }, 10000);
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        function sendQuickPrompt(prompt) {
-            const input = document.getElementById('chatInput');
-            input.value = prompt;
-            sendMessage();
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-
-            if (!message) return;
-
-            // Add user message to chat
-            addMessage(message, 'user');
-            input.value = '';
-
-            // Show loading
-            document.getElementById('loading').style.display = 'block';
-
-            try {
-                const response = await fetch('/api/agentforce-proxy', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        context: 'animal_health_territory_analysis'
-                    })
+                // Create dashboard instance exactly like the working demo
+                const dashboard = new AnalyticsDashboard({
+                    parentIdOrElement: dashboardContainer,
+                    idOrApiName: config.dashboardId
                 });
 
-                const data = await response.json();
+                console.log('📊 Dashboard object created, rendering...');
+                updateStatus('loading', 'Rendering dashboard...');
 
-                // Add agent response
-                if (data.response) {
-                    addMessage(data.response, 'agent');
-                } else {
-                    addMessage('I apologize, but I encountered an issue processing your request. Please try again.', 'agent');
+                // Render the dashboard
+                await dashboard.render();
+
+                console.log('🎉 Dashboard rendered successfully!');
+
+                // Hide loading overlay and update status
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
                 }
 
+                updateStatus('ready', 'Dashboard Ready');
+                dashboardInitialized = true;
+
             } catch (error) {
-                console.error('Error sending message:', error);
-                addMessage('I apologize, but I encountered a technical issue. Please try again.', 'agent');
-            } finally {
-                document.getElementById('loading').style.display = 'none';
+                console.error('❌ Dashboard initialization failed:', error);
+                updateStatus('error', 'Failed to load');
+                showError(`Dashboard loading failed: ${error.message}`);
+
+                // Hide loading overlay on error
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
             }
         }
 
-        function addMessage(text, sender) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            messageDiv.textContent = text;
+        /**
+         * Initialize Agentforce using iframe approach
+         */
+        async function initializeAgentforce() {
+            try {
+                console.log('🤖 Initializing Agentforce...');
 
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+                const agentforceUrl = `${config.orgUrl}/lightning/n/Copilot_Conversation`;
+                const frontdoorUrl = `${config.orgUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/lightning/n/Copilot_Conversation')}`;
+
+                const agentforceContainer = document.getElementById('agentforce-container');
+                agentforceContainer.src = frontdoorUrl;
+
+                console.log('✅ Agentforce initialized');
+
+            } catch (error) {
+                console.error('❌ Agentforce initialization failed:', error);
+            }
         }
+
+        /**
+         * Update dashboard status indicator
+         */
+        function updateStatus(type, message) {
+            const statusElement = document.getElementById('dashboard-status');
+            if (statusElement) {
+                statusElement.className = `dashboard-status status-${type}`;
+                statusElement.textContent = message;
+            }
+        }
+
+        /**
+         * Show error message
+         */
+        function showError(message) {
+            const container = document.getElementById('dashboard-container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `
+                <strong>⚠️ Error:</strong> ${message}
+                <br><br>
+                <button onclick="location.reload()" style="background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                    🔄 Retry
+                </button>
+            `;
+            container.appendChild(errorDiv);
+        }
+
+        /**
+         * Send quick prompt to Agentforce
+         */
+        function sendQuickPrompt(prompt) {
+            console.log('💬 Sending prompt to Agentforce:', prompt);
+            // This would typically post a message to the Agentforce iframe
+            // For now, we'll just log it
+        }
+
+        /**
+         * Logout function
+         */
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/logout';
+            }
+        }
+
+        // Add error handling for unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+        });
+
+        // Add global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', event.error);
+        });
     </script>
 </body>
 </html>

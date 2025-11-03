@@ -187,25 +187,57 @@ def logout():
 
 @app.route('/api/tableau-config')
 def tableau_config():
-    """Provide Tableau embedding configuration"""
+    """Provide Tableau embedding configuration using frontdoor URL pattern"""
     if 'access_token' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
-    # Use the correct dashboard ID and org URL for yg-agentforce-factory
-    dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Copy_of_Service_Agent_Analytics')
-    org_url = os.environ.get('SALESFORCE_ORG_URL', 'https://yg-agentforce-factory.lightning.force.com')
+    try:
+        # Generate frontdoor URL using the working pattern
+        access_token = session.get('access_token')
+        instance_url = session.get('instance_url')
 
-    config = {
-        'instanceUrl': session.get('instance_url'),
-        'orgUrl': org_url,
-        'dashboardId': dashboard_id,
-        'accessToken': session.get('access_token'),
-        'authCredential': session.get('access_token'),
-        'sessionId': session.get('access_token'),
-        'apiVersion': '58.0'
-    }
+        # Call Salesforce singleaccess endpoint to get frontdoor URL
+        frontdoor_url = f"{instance_url}/services/oauth2/singleaccess"
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
 
-    return jsonify(config)
+        response = requests.post(frontdoor_url, headers=headers)
+
+        if response.status_code == 200:
+            frontdoor_data = response.json()
+            frontdoor_uri = frontdoor_data.get('frontdoor_uri')
+        else:
+            # Fallback to manual frontdoor URL construction
+            frontdoor_uri = f"{instance_url}/secur/frontdoor.jsp?sid={access_token}"
+
+        # Use the dashboard ID from environment or default
+        dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Performance_Overview_Full_Page')
+
+        # Configuration matching the working implementation pattern
+        config = {
+            'authCredential': frontdoor_uri,
+            'orgUrl': instance_url,
+            'dashboardId': dashboard_id,
+            'instanceUrl': instance_url,
+            'accessToken': access_token  # Keep for backward compatibility
+        }
+
+        return jsonify(config)
+
+    except Exception as e:
+        print(f"Error generating frontdoor URL: {e}")
+        # Fallback configuration
+        dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Performance_Overview_Full_Page')
+        config = {
+            'authCredential': f"{session.get('instance_url')}/secur/frontdoor.jsp?sid={session.get('access_token')}",
+            'orgUrl': session.get('instance_url'),
+            'dashboardId': dashboard_id,
+            'instanceUrl': session.get('instance_url'),
+            'accessToken': session.get('access_token')
+        }
+        return jsonify(config)
 
 @app.route('/api/agentforce-proxy', methods=['POST'])
 def agentforce_proxy():
