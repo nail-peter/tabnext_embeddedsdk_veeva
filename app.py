@@ -23,9 +23,17 @@ REDIRECT_URI = os.environ.get('APP_URL', 'http://localhost:5000') + '/callback'
 
 @app.route('/')
 def index():
+    """Main landing page with login option"""
+    if 'access_token' in session:
+        return redirect(url_for('dashboard'))
+
+    return render_template('index.html')
+
+@app.route('/dashboard')
+def dashboard():
     """Main dashboard page with Tableau Next and Agentforce integration"""
     if 'access_token' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))
 
     return render_template('dashboard.html',
                          user_info=session.get('user_info'),
@@ -101,15 +109,15 @@ def callback():
         if user_info_response.status_code == 200:
             session['user_info'] = user_info_response.json()
 
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     else:
         return f"Token exchange failed: {response.text}", 400
 
 @app.route('/logout')
 def logout():
-    """Clear session and redirect to login"""
+    """Clear session and redirect to home"""
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 @app.route('/api/tableau-config')
 def tableau_config():
