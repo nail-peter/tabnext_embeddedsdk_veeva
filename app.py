@@ -212,8 +212,8 @@ def tableau_config():
             # Fallback to manual frontdoor URL construction
             frontdoor_uri = f"{instance_url}/secur/frontdoor.jsp?sid={access_token}"
 
-        # Use the dashboard ID from environment or default to working demo ID
-        dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Sales_Cloud_Dashboard')
+        # Use the dashboard ID from environment or default
+        dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Performance_Overview_Full_Page')
 
         # Configuration matching the working implementation pattern
         config = {
@@ -229,7 +229,7 @@ def tableau_config():
     except Exception as e:
         print(f"Error generating frontdoor URL: {e}")
         # Fallback configuration
-        dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Sales_Cloud_Dashboard')
+        dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Performance_Overview_Full_Page')
         config = {
             'authCredential': f"{session.get('instance_url')}/secur/frontdoor.jsp?sid={session.get('access_token')}",
             'orgUrl': session.get('instance_url'),

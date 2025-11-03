@@ -299,11 +299,8 @@
                     authCredential: config.authCredential ? config.authCredential.substring(0, 50) + '...' : 'missing'
                 });
 
-                // Debugging: let's try a known working dashboard ID first
-                if (config.dashboardId === 'Performance_Overview_Full_Page') {
-                    console.log('🔄 Switching to known working dashboard ID...');
-                    config.dashboardId = 'Sales_Cloud_Dashboard';
-                }
+                // Keep the original dashboard ID - it was correct
+                console.log('📊 Using dashboard ID:', config.dashboardId);
 
                 // Initialize both components
                 await Promise.all([
