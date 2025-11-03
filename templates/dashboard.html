@@ -334,10 +334,109 @@
         async function initializeTableauNextSDK(config) {
             console.log('Initializing Tableau Next with config:', config);
 
-            // Salesforce blocks iframe embedding due to CSP frame-ancestors policy
-            // Use popup window approach instead
-            console.log('Using popup window approach due to Salesforce CSP restrictions');
-            await initializePopupDashboard(config);
+            try {
+                // Use the official Tableau Next SDK pattern
+                console.log('Attempting official Tableau Next SDK implementation...');
+                await initializeOfficialTableauNextSDK(config);
+            } catch (sdkError) {
+                console.error('Official SDK failed, falling back to popup approach:', sdkError);
+                await initializePopupDashboard(config);
+            }
+        }
+
+        async function initializeOfficialTableauNextSDK(config) {
+            console.log('Using official Tableau Next SDK pattern');
+
+            // Create the exact configuration structure from Salesforce documentation
+            const sdkConfig = {
+                authCredential: config.authCredential,
+                orgUrl: config.orgUrl
+            };
+
+            console.log('SDK Config:', sdkConfig);
+
+            try {
+                // Method 1: Try dynamic import with the official SDK source
+                const sdkSource = `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`;
+                console.log('Importing SDK from:', sdkSource);
+
+                // Use dynamic import as in the official example
+                const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(sdkSource);
+
+                console.log('SDK imported successfully');
+
+                // Initialize the SDK exactly as in the official documentation
+                await initializeAnalyticsSdk(sdkConfig);
+                console.log('Analytics SDK initialized');
+
+                // Create dashboard exactly as in the official example
+                const dashboard = new AnalyticsDashboard({
+                    parentIdOrElement: 'analytics-container',
+                    idOrApiName: config.dashboardId
+                });
+
+                console.log('Dashboard object created, rendering...');
+
+                // Render the dashboard
+                await dashboard.render();
+                console.log('✅ Dashboard rendered successfully using official SDK!');
+
+            } catch (importError) {
+                console.error('SDK import failed:', importError);
+
+                // Fallback: Try loading SDK via script tag and accessing global
+                console.log('Trying script tag approach...');
+                await loadSDKViaScriptTag(config, sdkConfig);
+            }
+        }
+
+        async function loadSDKViaScriptTag(config, sdkConfig) {
+            return new Promise((resolve, reject) => {
+                // Create script element for SDK
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.innerHTML = `
+                    const config = {
+                        authCredential: '${config.authCredential}',
+                        orgUrl: '${config.orgUrl}'
+                    };
+
+                    try {
+                        const { initializeAnalyticsSdk, AnalyticsDashboard } = await import('${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js');
+                        await initializeAnalyticsSdk(config);
+                        const dashboard = new AnalyticsDashboard({
+                            parentIdOrElement: 'analytics-container',
+                            idOrApiName: '${config.dashboardId}'
+                        });
+                        await dashboard.render();
+                        console.log('✅ Dashboard rendered via script tag!');
+                        window.tableauDashboardLoaded = true;
+                    } catch (error) {
+                        console.error('Script tag SDK failed:', error);
+                        window.tableauDashboardError = error;
+                    }
+                `;
+
+                script.onload = () => {
+                    // Check if dashboard loaded successfully
+                    setTimeout(() => {
+                        if (window.tableauDashboardLoaded) {
+                            resolve();
+                        } else if (window.tableauDashboardError) {
+                            reject(window.tableauDashboardError);
+                        } else {
+                            reject(new Error('Script tag method timeout'));
+                        }
+                    }, 5000);
+                };
+
+                script.onerror = (error) => {
+                    console.error('Script tag loading failed:', error);
+                    reject(error);
+                };
+
+                document.head.appendChild(script);
+            });
         }
 
         function loadSDKViaScript(config) {
