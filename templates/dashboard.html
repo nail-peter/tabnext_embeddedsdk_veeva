@@ -427,9 +427,87 @@
 
                 console.log('Dashboard object created, rendering...');
 
-                // Render the dashboard
-                await dashboard.render();
-                console.log('✅ Dashboard rendered successfully using official SDK!');
+                // Show loading indicator
+                const container = document.getElementById('analytics-container');
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;">
+                        <div style="width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #1B96FF; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+                        <p style="color: #666; font-size: 16px;">Loading Tableau Dashboard...</p>
+                        <p style="color: #888; font-size: 14px;">SDK initialized successfully, rendering content...</p>
+                    </div>
+                `;
+
+                // Add spin animation if not already present
+                if (!document.getElementById('dashboard-spin-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'dashboard-spin-style';
+                    style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+                    document.head.appendChild(style);
+                }
+
+                // Add timeout and better error handling for rendering
+                try {
+                    console.log('Starting dashboard render...');
+
+                    // Set a timeout for rendering
+                    const renderPromise = dashboard.render();
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Dashboard render timeout after 30 seconds')), 30000)
+                    );
+
+                    await Promise.race([renderPromise, timeoutPromise]);
+                    console.log('✅ Dashboard rendered successfully using official SDK!');
+
+                    // Check if content actually appeared
+                    setTimeout(() => {
+                        const container = document.getElementById('analytics-container');
+                        const hasContent = container && container.children.length > 0;
+                        console.log('Dashboard container check:', {
+                            containerExists: !!container,
+                            hasChildren: hasContent,
+                            innerHTML: container ? container.innerHTML.substring(0, 200) + '...' : 'No container'
+                        });
+
+                        if (!hasContent) {
+                            console.warn('⚠️ Dashboard rendered but no content visible. This may indicate:');
+                            console.warn('- Dashboard ID does not exist in Salesforce org');
+                            console.warn('- User lacks permissions to view the dashboard');
+                            console.warn('- Dashboard has no data or widgets');
+                            console.warn('- Network issues preventing dashboard content load');
+
+                            // Show a helpful message to user
+                            container.innerHTML = `
+                                <div style="padding: 40px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px; margin: 20px;">
+                                    <h3 style="color: #FF6B35; margin-bottom: 20px;">🔍 Dashboard Loading Issue</h3>
+                                    <p style="margin-bottom: 15px;"><strong>SDK loaded successfully, but dashboard content is not visible.</strong></p>
+                                    <div style="text-align: left; max-width: 500px; margin: 0 auto;">
+                                        <p><strong>Possible causes:</strong></p>
+                                        <ul style="padding-left: 20px;">
+                                            <li>Dashboard ID "<code>Performance_Overview_Full_Page</code>" doesn't exist in your Salesforce org</li>
+                                            <li>User permissions: Need Analytics/Tableau dashboard access</li>
+                                            <li>Dashboard has no data or widgets configured</li>
+                                            <li>Network connectivity issues</li>
+                                        </ul>
+                                        <p style="margin-top: 20px;"><strong>Next steps:</strong></p>
+                                        <ol style="padding-left: 20px;">
+                                            <li>Verify dashboard exists in Analytics Studio</li>
+                                            <li>Check user permissions for Analytics</li>
+                                            <li>Try with a different dashboard ID</li>
+                                        </ol>
+                                    </div>
+                                    <button onclick="initializePopupDashboard({instanceUrl: '${config.instanceUrl}', accessToken: '${config.accessToken}', dashboardId: '${config.dashboardId}'})"
+                                            style="background: #1B96FF; color: white; border: none; padding: 12px 24px; border-radius: 6px; margin-top: 20px; cursor: pointer;">
+                                        🔗 Try Popup Approach Instead
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }, 3000);
+
+                } catch (renderError) {
+                    console.error('❌ Dashboard rendering failed:', renderError);
+                    throw renderError;
+                }
 
             } catch (importError) {
                 console.error('All SDK loading methods failed:', importError);
