@@ -13,7 +13,28 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-CORS(app)
+
+# Configure CORS for Salesforce embedding
+CORS(app, origins=[
+    'https://yg-agentforce-factory.lightning.force.com',
+    'https://yg-agentforce-factory.my.salesforce.com',
+    'https://tnextembedding-4f6497b38c6a.herokuapp.com'
+])
+
+# Add CSP headers for better embedding support
+@app.after_request
+def after_request(response):
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self' https://yg-agentforce-factory.lightning.force.com "
+        "https://yg-agentforce-factory.my.salesforce.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+        "https://yg-agentforce-factory.lightning.force.com "
+        "https://yg-agentforce-factory.my.salesforce.com; "
+        "frame-src 'self' https://yg-agentforce-factory.lightning.force.com "
+        "https://yg-agentforce-factory.my.salesforce.com; "
+        "style-src 'self' 'unsafe-inline' https://yg-agentforce-factory.lightning.force.com"
+    )
+    return response
 
 # Salesforce OAuth Configuration
 SALESFORCE_CLIENT_ID = os.environ.get('SALESFORCE_CLIENT_ID')
