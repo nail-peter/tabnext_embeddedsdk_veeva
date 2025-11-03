@@ -413,12 +413,46 @@
 
                 console.log('🔗 Stored credentials in localStorage');
 
-                // Import AnalyticsAgent using exact working demo pattern
-                const { AnalyticsAgent } = await import(
+                // Import SDK and debug what's available
+                const sdkImport = await import(
                     /* webpackIgnore: true */ '/static/js/analytics-sdk.js'
                 );
 
-                console.log('✅ AnalyticsAgent imported successfully');
+                console.log('✅ SDK imported successfully');
+                console.log('🔍 Available exports:', Object.keys(sdkImport));
+                console.log('🔍 Full SDK object:', sdkImport);
+                console.log('🔍 AnalyticsAgent type:', typeof sdkImport.AnalyticsAgent);
+                console.log('🔍 AnalyticsAgent value:', sdkImport.AnalyticsAgent);
+
+                // Check if there's a default export
+                if (sdkImport.default) {
+                    console.log('🔍 Default export keys:', Object.keys(sdkImport.default));
+                    console.log('🔍 Default.AnalyticsAgent type:', typeof sdkImport.default.AnalyticsAgent);
+                }
+
+                // Check for initialization functions
+                const possibleInitFunctions = ['initializeAnalyticsSdk', 'init', 'initialize', 'setup'];
+                possibleInitFunctions.forEach(funcName => {
+                    if (sdkImport[funcName]) {
+                        console.log(`🔍 Found initialization function: ${funcName} (${typeof sdkImport[funcName]})`);
+                    }
+                });
+
+                // Try to get AnalyticsAgent from different possible locations
+                let AnalyticsAgent = sdkImport.AnalyticsAgent ||
+                                   sdkImport.default?.AnalyticsAgent ||
+                                   sdkImport.default ||
+                                   null;
+
+                console.log('🔧 Resolved AnalyticsAgent:', typeof AnalyticsAgent);
+
+                if (!AnalyticsAgent) {
+                    throw new Error('AnalyticsAgent not found in SDK exports');
+                }
+
+                if (typeof AnalyticsAgent !== 'function') {
+                    throw new Error(`AnalyticsAgent is not a function, it's a ${typeof AnalyticsAgent}`);
+                }
 
                 // Create agent using exact working demo pattern
                 const agent = new AnalyticsAgent({
