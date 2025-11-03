@@ -395,18 +395,11 @@
         }
 
         /**
-         * Initialize Agentforce using AnalyticsAgent from SDK (correct pattern)
+         * Initialize Agentforce using direct URL approach
          */
         async function initializeAgentforce() {
             try {
                 console.log('🤖 Initializing Agentforce Analytics Agent...');
-
-                // Import AnalyticsAgent from the same SDK
-                const { AnalyticsAgent } = await import(
-                    /* webpackIgnore: true */ './static/js/analytics-sdk.js'
-                );
-
-                console.log('✅ AnalyticsAgent SDK loaded');
 
                 // Get the container element
                 const agentContainer = document.getElementById('agentforce-container');
@@ -414,31 +407,41 @@
                 // Clear any existing content
                 agentContainer.innerHTML = '';
 
-                // Create the Analytics Agent using your configured agent
-                const agent = new AnalyticsAgent({
-                    parentIdOrElement: agentContainer,
-                    idOrApiName: "Analytics_and_Visualization"  // Your actual agent API name
-                });
+                // Create iframe for direct agent access
+                const agentIframe = document.createElement('iframe');
+                agentIframe.style.cssText = 'border: none; width: 100%; height: 100%; overflow: auto;';
+                agentIframe.src = 'about:blank';
 
-                console.log('🔧 AnalyticsAgent created, rendering...');
+                // Add iframe to container
+                agentContainer.appendChild(agentIframe);
 
-                // Render the agent
-                await agent.render();
+                // Construct agent URL with your configured agent
+                const agentUrl = `${config.orgUrl}/lightning/n/Einstein_Copilot`;
+                const frontdoorUrl = `${config.orgUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/lightning/n/Einstein_Copilot')}`;
 
-                console.log('✅ AnalyticsAgent rendered successfully');
+                console.log('🔗 Loading agent at:', frontdoorUrl);
+
+                // Load the agent
+                agentIframe.src = frontdoorUrl;
+
+                console.log('✅ Agentforce agent loaded successfully');
 
             } catch (error) {
-                console.error('❌ AnalyticsAgent initialization failed:', error);
+                console.error('❌ Agentforce initialization failed:', error);
 
                 // Show error in the container
                 const agentContainer = document.getElementById('agentforce-container');
                 agentContainer.innerHTML = `
                     <div style="padding: 20px; text-align: center; color: #666;">
-                        <p><strong>⚠️ Analytics Agent Error</strong></p>
+                        <p><strong>⚠️ Agentforce Loading Error</strong></p>
                         <p style="font-size: 14px; margin-top: 10px;">${error.message}</p>
                         <p style="font-size: 12px; margin-top: 10px; color: #888;">
-                            Make sure Agentforce is enabled in your Salesforce org
+                            Trying direct URL approach for agent access
                         </p>
+                        <button onclick="window.open('${config.orgUrl}/lightning/n/Einstein_Copilot', '_blank')"
+                                style="background: #1B96FF; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+                            Open Agent in New Tab
+                        </button>
                     </div>
                 `;
             }
