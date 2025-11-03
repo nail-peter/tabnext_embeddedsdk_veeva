@@ -140,7 +140,9 @@ def agentforce_proxy():
         'Content-Type': 'application/json'
     }
 
-    agentforce_url = f"{session['instance_url']}/services/data/v58.0/analytics/agent"
+    # Configurable Agentforce endpoint
+    agentforce_endpoint = os.environ.get('AGENTFORCE_ENDPOINT', '/services/data/v58.0/analytics/agent')
+    agentforce_url = f"{session['instance_url']}{agentforce_endpoint}"
 
     response = requests.post(
         agentforce_url,

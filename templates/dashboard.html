@@ -319,7 +319,20 @@
 
                 // Configure Tableau iframe source
                 const iframe = document.getElementById('tableau-dashboard');
+
+                // Different embed URL patterns based on what you want to embed:
+                // 1. CRM Analytics Dashboard (current):
                 const tableauUrl = `${config.instanceUrl}/analytics/wave/dashboard/${config.dashboardId}`;
+
+                // 2. Standard Salesforce Reports:
+                // const tableauUrl = `${config.instanceUrl}/lightning/r/Report/${config.dashboardId}/view`;
+
+                // 3. Lightning Dashboard:
+                // const tableauUrl = `${config.instanceUrl}/lightning/r/Dashboard/${config.dashboardId}/view`;
+
+                // 4. Custom Lightning Component:
+                // const tableauUrl = `${config.instanceUrl}/lightning/n/your_custom_tab`;
+
                 iframe.src = tableauUrl;
 
             } catch (error) {
