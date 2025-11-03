@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boehringer Ingelheim Animal Health - Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .logo::before {
+            content: "🐾";
+            margin-right: 0.5rem;
+            font-size: 2rem;
+        }
+
+        .user-info {
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            padding: 2rem;
+            height: calc(100vh - 80px);
+        }
+
+        .tableau-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tableau-header {
+            background: linear-gradient(135deg, #00A651 0%, #005F36 100%);
+            color: white;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .tableau-content {
+            height: calc(100% - 60px);
+            position: relative;
+        }
+
+        #tableau-dashboard {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .agentforce-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .agentforce-header {
+            background: linear-gradient(135deg, #FF6B35 0%, #F04A00 100%);
+            color: white;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .agentforce-header::before {
+            content: "🤖";
+            margin-right: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            max-width: 85%;
+        }
+
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.agent {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-input-container {
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .send-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #0056b3;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            color: #666;
+        }
+
+        .quick-prompts {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .quick-prompts h4 {
+            margin-bottom: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .prompt-btn {
+            background: #e9ecef;
+            border: none;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.3s;
+        }
+
+        .prompt-btn:hover {
+            background: #007bff;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .agentforce-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            Boehringer Ingelheim Animal Health
+        </div>
+        <div class="user-info">
+            {% if user_info %}
+                <span>Welcome, {{ user_info.display_name or user_info.username }}</span>
+            {% endif %}
+            <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tableau-container">
+            <div class="tableau-header">
+                📊 Tableau Next Dashboard - Territory Analytics
+            </div>
+            <div class="tableau-content">
+                <iframe id="tableau-dashboard"
+                        src="about:blank"
+                        title="Tableau Dashboard">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="agentforce-container">
+            <div class="agentforce-header">
+                Sidekick Agent
+            </div>
+
+            <div class="quick-prompts">
+                <h4>Quick Actions:</h4>
+                <button class="prompt-btn" onclick="sendQuickPrompt('Help me prioritize and plan my week')">
+                    📅 Plan My Week
+                </button>
+                <button class="prompt-btn" onclick="sendQuickPrompt('Show me new clinics added in my territory in the last 60 days')">
+                    🏥 New Clinics
+                </button>
+                <button class="prompt-btn" onclick="sendQuickPrompt('Which brands or SKUs are underperforming vs last year in my territory?')">
+                    📉 Underperforming Products
+                </button>
+                <button class="prompt-btn" onclick="sendQuickPrompt('Which clinics are top performers for Nexgard?')">
+                    🏆 Top Nexgard Clinics
+                </button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message agent">
+                    Hello! I'm your Sidekick Agent for Boehringer Ingelheim Animal Health. I can help you with territory planning, clinic insights, product performance, and loyalty program analysis. How can I assist you today?
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                Agent is thinking...
+            </div>
+
+            <div class="chat-input-container">
+                <input type="text"
+                       class="chat-input"
+                       id="chatInput"
+                       placeholder="Ask about your territory, clinics, or product performance..."
+                       onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTableau();
+        });
+
+        async function initializeTableau() {
+            try {
+                const response = await fetch('/api/tableau-config');
+                const config = await response.json();
+
+                if (config.error) {
+                    console.error('Tableau config error:', config.error);
+                    return;
+                }
+
+                // Configure Tableau iframe source
+                const iframe = document.getElementById('tableau-dashboard');
+                const tableauUrl = `${config.instanceUrl}/analytics/wave/dashboard/${config.dashboardId}`;
+                iframe.src = tableauUrl;
+
+            } catch (error) {
+                console.error('Error initializing Tableau:', error);
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendQuickPrompt(prompt) {
+            const input = document.getElementById('chatInput');
+            input.value = prompt;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            input.value = '';
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/agentforce-proxy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        context: 'animal_health_territory_analysis'
+                    })
+                });
+
+                const data = await response.json();
+
+                // Add agent response
+                if (data.response) {
+                    addMessage(data.response, 'agent');
+                } else {
+                    addMessage('I apologize, but I encountered an issue processing your request. Please try again.', 'agent');
+                }
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessage('I apologize, but I encountered a technical issue. Please try again.', 'agent');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function addMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = text;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html>

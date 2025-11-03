@@ -1,0 +1,29 @@
+{
+  "name": "boehringer-tableau-agentforce-app",
+  "version": "1.0.0",
+  "description": "Boehringer Ingelheim Animal Health - Tableau Next & Agentforce Integration",
+  "main": "app.py",
+  "scripts": {
+    "build": "npm install",
+    "start": "python app.py",
+    "dev": "python app.py"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.5.0"
+  },
+  "engines": {
+    "node": "18.x",
+    "python": "3.11.x"
+  },
+  "keywords": [
+    "tableau",
+    "agentforce",
+    "salesforce",
+    "embedding",
+    "animal-health",
+    "analytics"
+  ],
+  "author": "Boehringer Ingelheim",
+  "license": "MIT"
+}
