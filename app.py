@@ -18,7 +18,7 @@ CORS(app)
 # Salesforce OAuth Configuration
 SALESFORCE_CLIENT_ID = os.environ.get('SALESFORCE_CLIENT_ID')
 SALESFORCE_CLIENT_SECRET = os.environ.get('SALESFORCE_CLIENT_SECRET')
-SALESFORCE_LOGIN_URL = 'https://login.salesforce.com'
+SALESFORCE_LOGIN_URL = os.environ.get('SALESFORCE_LOGIN_URL', 'https://login.salesforce.com')
 REDIRECT_URI = os.environ.get('APP_URL', 'http://localhost:5000') + '/callback'
 
 @app.route('/')
