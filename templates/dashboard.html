@@ -267,12 +267,14 @@
                     <button class="prompt-btn" onclick="sendQuickPrompt('Competitor analysis summary')">Competitor Intel</button>
                 </div>
             </div>
-            <iframe
+            <div
                 id="agentforce-container"
-                class="agentforce-container"
-                src="about:blank"
-                frameborder="0">
-            </iframe>
+                class="agentforce-container">
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <div class="spinner" style="margin: 0 auto 1rem auto; width: 30px; height: 30px;"></div>
+                    <p>Loading Analytics Agent...</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -393,22 +395,52 @@
         }
 
         /**
-         * Initialize Agentforce using iframe approach
+         * Initialize Agentforce using AnalyticsAgent from SDK (correct pattern)
          */
         async function initializeAgentforce() {
             try {
-                console.log('🤖 Initializing Agentforce...');
+                console.log('🤖 Initializing Agentforce Analytics Agent...');
 
-                const agentforceUrl = `${config.orgUrl}/lightning/n/Copilot_Conversation`;
-                const frontdoorUrl = `${config.orgUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/lightning/n/Copilot_Conversation')}`;
+                // Import AnalyticsAgent from the same SDK
+                const { AnalyticsAgent } = await import(
+                    /* webpackIgnore: true */ './static/js/analytics-sdk.js'
+                );
 
-                const agentforceContainer = document.getElementById('agentforce-container');
-                agentforceContainer.src = frontdoorUrl;
+                console.log('✅ AnalyticsAgent SDK loaded');
 
-                console.log('✅ Agentforce initialized');
+                // Get the container element
+                const agentContainer = document.getElementById('agentforce-container');
+
+                // Clear any existing content
+                agentContainer.innerHTML = '';
+
+                // Create the Analytics Agent using the exact pattern from working demo
+                const agent = new AnalyticsAgent({
+                    parentIdOrElement: agentContainer,
+                    idOrApiName: "Agentforce_Employee_Agent"  // Using same name as working demo
+                });
+
+                console.log('🔧 AnalyticsAgent created, rendering...');
+
+                // Render the agent
+                await agent.render();
+
+                console.log('✅ AnalyticsAgent rendered successfully');
 
             } catch (error) {
-                console.error('❌ Agentforce initialization failed:', error);
+                console.error('❌ AnalyticsAgent initialization failed:', error);
+
+                // Show error in the container
+                const agentContainer = document.getElementById('agentforce-container');
+                agentContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #666;">
+                        <p><strong>⚠️ Analytics Agent Error</strong></p>
+                        <p style="font-size: 14px; margin-top: 10px;">${error.message}</p>
+                        <p style="font-size: 12px; margin-top: 10px; color: #888;">
+                            Make sure Agentforce is enabled in your Salesforce org
+                        </p>
+                    </div>
+                `;
             }
         }
 
