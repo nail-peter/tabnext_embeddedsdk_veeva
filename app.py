@@ -50,8 +50,9 @@ def login():
 
     # Store code verifier in session for callback
     session['code_verifier'] = code_verifier
-
-    auth_url = f"{SALESFORCE_LOGIN_URL}/services/oauth2/authorize"
+    print(SALESFORCE_LOGIN_URL)
+    #auth_url = f"{SALESFORCE_LOGIN_URL}/services/oauth2/authorize"
+    auth_url = f"https://login.salesforce.com/services/oauth2/authorize"
     params = {
         'response_type': 'code',
         'client_id': SALESFORCE_CLIENT_ID,
@@ -66,6 +67,7 @@ def login():
 
 @app.route('/callback')
 def callback():
+    print("Manuel")
     """Handle Salesforce OAuth callback with PKCE"""
     code = request.args.get('code')
     error = request.args.get('error')
