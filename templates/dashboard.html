@@ -334,15 +334,9 @@
         async function initializeTableauNextSDK(config) {
             console.log('Initializing Tableau Next with config:', config);
 
-            try {
-                // Method 1: Try loading SDK via script tag to avoid CORS
-                await loadSDKViaScript(config);
-
-            } catch (sdkError) {
-                console.error('SDK method failed, trying iframe embedding:', sdkError);
-                // Fall back to authenticated iframe approach
-                await initializeAuthenticatedIframe(config);
-            }
+            // Skip SDK loading and go directly to iframe approach which is more reliable
+            console.log('Using iframe embedding approach for better compatibility');
+            await initializeAuthenticatedIframe(config);
         }
 
         function loadSDKViaScript(config) {
@@ -391,24 +385,110 @@
 
         async function initializeAuthenticatedIframe(config) {
             console.log('Using authenticated iframe approach');
-
-            // Create frontdoor URL for authenticated access
-            const frontdoorUrl = `${config.instanceUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=/analytics/wave/dashboard/${config.dashboardId}`;
+            console.log('Config received:', config);
 
             const container = document.getElementById('analytics-container');
+
+            // Try multiple URL patterns for Tableau Next embedding
+            const urlPatterns = [
+                // Method 1: Frontdoor URL with return to dashboard
+                `${config.instanceUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/analytics/wave/dashboard/' + config.dashboardId)}`,
+
+                // Method 2: Direct dashboard URL with session
+                `${config.orgUrl}/analytics/wave/dashboard/${config.dashboardId}?sessionId=${config.accessToken}`,
+
+                // Method 3: Lightning dashboard URL
+                `${config.orgUrl}/lightning/r/Dashboard/${config.dashboardId}/view`,
+
+                // Method 4: Analytics wave URL
+                `${config.instanceUrl}/analytics/wave/dashboard/${config.dashboardId}`
+            ];
+
+            // Try loading with the first URL pattern
+            const primaryUrl = urlPatterns[0];
+            console.log('Loading iframe with URL:', primaryUrl);
+
             container.innerHTML = `
-                <div class="authenticated-iframe-container">
+                <div class="iframe-container" style="width: 100%; height: 100%; position: relative;">
+                    <div id="loading-indicator" style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        text-align: center;
+                        color: #666;
+                        z-index: 10;
+                    ">
+                        <div class="slds-spinner slds-spinner_medium" style="margin-bottom: 10px;">
+                            <div class="slds-spinner__dot-a"></div>
+                            <div class="slds-spinner__dot-b"></div>
+                        </div>
+                        <p>Loading Tableau Dashboard...</p>
+                    </div>
                     <iframe
-                        src="${frontdoorUrl}"
-                        style="width: 100%; height: 100%; border: none;"
-                        title="Tableau Dashboard (Authenticated)"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-top-navigation"
-                        onload="console.log('Authenticated iframe loaded successfully')"
-                        onerror="console.error('Authenticated iframe failed to load')">
+                        id="tableau-iframe"
+                        src="${primaryUrl}"
+                        style="width: 100%; height: 100%; border: none; background: white;"
+                        title="Tableau Dashboard"
+                        allow="fullscreen"
+                        onload="handleIframeLoad()"
+                        onerror="handleIframeError()">
                     </iframe>
                 </div>
             `;
-            console.log('Authenticated iframe initialized with frontdoor URL');
+
+            // Add global functions for iframe handling
+            window.handleIframeLoad = function() {
+                console.log('Iframe loaded successfully');
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+            };
+
+            window.handleIframeError = function() {
+                console.error('Iframe failed to load, trying fallback URLs');
+                tryFallbackUrls(urlPatterns.slice(1), 1);
+            };
+
+            // Function to try fallback URLs
+            function tryFallbackUrls(urls, index) {
+                if (index >= urls.length) {
+                    console.error('All iframe URL patterns failed');
+                    showErrorMessage();
+                    return;
+                }
+
+                const iframe = document.getElementById('tableau-iframe');
+                const fallbackUrl = urls[index - 1];
+                console.log(`Trying fallback URL ${index}:`, fallbackUrl);
+
+                iframe.src = fallbackUrl;
+
+                // Set timeout to try next URL if this one fails
+                setTimeout(() => {
+                    tryFallbackUrls(urls, index + 1);
+                }, 5000);
+            }
+
+            function showErrorMessage() {
+                container.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #666;">
+                        <h3>Dashboard Loading Issue</h3>
+                        <p>Unable to load the Tableau dashboard. This may be due to:</p>
+                        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                            <li>Dashboard permissions</li>
+                            <li>Network connectivity</li>
+                            <li>Salesforce session timeout</li>
+                        </ul>
+                        <button onclick="location.reload()" style="margin-top: 15px; padding: 8px 16px;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+
+            console.log('Authenticated iframe initialized');
         }
 
         function handleKeyPress(event) {

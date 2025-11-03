@@ -14,26 +14,39 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
 
-# Configure CORS for Salesforce embedding
-CORS(app, origins=[
-    'https://yg-agentforce-factory.lightning.force.com',
-    'https://yg-agentforce-factory.my.salesforce.com',
-    'https://tnextembedding-4f6497b38c6a.herokuapp.com'
-])
+# Configure CORS for Salesforce embedding - more permissive for development
+CORS(app,
+     origins=['*'],  # Allow all origins for development
+     supports_credentials=True,
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+     expose_headers=['Content-Range', 'X-Content-Range'])
 
 # Add CSP headers for better embedding support
 @app.after_request
 def after_request(response):
     response.headers['Content-Security-Policy'] = (
-        "default-src 'self' https://yg-agentforce-factory.lightning.force.com "
-        "https://yg-agentforce-factory.my.salesforce.com; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: "
+        "https://*.salesforce.com https://*.force.com https://*.lightning.force.com "
         "https://yg-agentforce-factory.lightning.force.com "
         "https://yg-agentforce-factory.my.salesforce.com; "
-        "frame-src 'self' https://yg-agentforce-factory.lightning.force.com "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: "
+        "https://*.salesforce.com https://*.force.com https://*.lightning.force.com "
+        "https://yg-agentforce-factory.lightning.force.com "
         "https://yg-agentforce-factory.my.salesforce.com; "
-        "style-src 'self' 'unsafe-inline' https://yg-agentforce-factory.lightning.force.com"
+        "frame-src 'self' "
+        "https://*.salesforce.com https://*.force.com https://*.lightning.force.com "
+        "https://yg-agentforce-factory.lightning.force.com "
+        "https://yg-agentforce-factory.my.salesforce.com; "
+        "style-src 'self' 'unsafe-inline' "
+        "https://*.salesforce.com https://*.force.com https://*.lightning.force.com; "
+        "img-src 'self' data: https://*.salesforce.com https://*.force.com; "
+        "connect-src 'self' https://*.salesforce.com https://*.force.com"
     )
+    # Add headers to allow iframe embedding
+    # Remove X-Frame-Options to allow iframe embedding
+    if 'X-Frame-Options' in response.headers:
+        del response.headers['X-Frame-Options']
+    response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
 
 # Salesforce OAuth Configuration
