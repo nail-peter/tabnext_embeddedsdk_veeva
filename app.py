@@ -91,7 +91,7 @@ def login():
         'response_type': 'code',
         'client_id': SALESFORCE_CLIENT_ID,
         'redirect_uri': REDIRECT_URI,
-        'scope': 'api web refresh_token offline_access lightning wave_api',
+        'scope': 'api web refresh_token offline_access lightning',
         'code_challenge': code_challenge,
         'code_challenge_method': 'S256'
     }
