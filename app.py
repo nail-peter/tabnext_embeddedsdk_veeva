@@ -118,12 +118,15 @@ def tableau_config():
         return jsonify({'error': 'Not authenticated'}), 401
 
     # Use any existing dashboard ID from your org
-    dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Sales_Cloud_Dashboard')
+    dashboard_id = os.environ.get('TABLEAU_DASHBOARD_ID', 'Performance_Overview_Full_Page')
+    org_url = os.environ.get('SALESFORCE_ORG_URL', session.get('instance_url'))
 
     config = {
         'instanceUrl': session.get('instance_url'),
+        'orgUrl': org_url,
         'dashboardId': dashboard_id,
-        'accessToken': session.get('access_token')
+        'accessToken': session.get('access_token'),
+        'authCredential': session.get('access_token')
     }
 
     return jsonify(config)

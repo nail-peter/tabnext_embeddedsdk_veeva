@@ -250,10 +250,7 @@
                 📊 Tableau Next Dashboard - Territory Analytics
             </div>
             <div class="tableau-content">
-                <iframe id="tableau-dashboard"
-                        src="about:blank"
-                        title="Tableau Dashboard">
-                </iframe>
+                <div id="analytics-container" style="width: 100%; height: 100%;"></div>
             </div>
         </div>
 
@@ -317,26 +314,58 @@
                     return;
                 }
 
-                // Configure Tableau iframe source
-                const iframe = document.getElementById('tableau-dashboard');
-
-                // Different embed URL patterns based on what you want to embed:
-                // 1. CRM Analytics Dashboard (current):
-                const tableauUrl = `${config.instanceUrl}/analytics/wave/dashboard/${config.dashboardId}`;
-
-                // 2. Standard Salesforce Reports:
-                // const tableauUrl = `${config.instanceUrl}/lightning/r/Report/${config.dashboardId}/view`;
-
-                // 3. Lightning Dashboard:
-                // const tableauUrl = `${config.instanceUrl}/lightning/r/Dashboard/${config.dashboardId}/view`;
-
-                // 4. Custom Lightning Component:
-                // const tableauUrl = `${config.instanceUrl}/lightning/n/your_custom_tab`;
-
-                iframe.src = tableauUrl;
+                // Use proper Tableau Next SDK embedding
+                await initializeTableauNextSDK(config);
 
             } catch (error) {
                 console.error('Error initializing Tableau:', error);
+                // Fallback: show error message in container
+                const container = document.getElementById('analytics-container');
+                container.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #666;">
+                        <h3>Dashboard Loading</h3>
+                        <p>Setting up Tableau Next analytics...</p>
+                        <p style="font-size: 0.9em;">Dashboard ID: ${config.dashboardId}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function initializeTableauNextSDK(config) {
+            // Tableau Next SDK configuration matching your embed code
+            const sdkConfig = {
+                authCredential: config.authCredential,
+                orgUrl: config.orgUrl
+            };
+
+            try {
+                // Import Tableau Next SDK (this URL needs to be updated with the actual SDK source)
+                const { initializeAnalyticsSdk, AnalyticsDashboard } = await import('https://your-org.salesforce.com/analytics/wave/web/proto/sdk/analytics-sdk.js');
+
+                // Initialize SDK
+                await initializeAnalyticsSdk(sdkConfig);
+
+                // Create and render dashboard
+                const dashboard = new AnalyticsDashboard({
+                    parentIdOrElement: 'analytics-container',
+                    idOrApiName: config.dashboardId
+                });
+
+                await dashboard.render();
+
+            } catch (sdkError) {
+                console.error('SDK loading error:', sdkError);
+
+                // Fallback to iframe method
+                console.log('Falling back to iframe embedding...');
+                const container = document.getElementById('analytics-container');
+                container.innerHTML = `
+                    <iframe
+                        src="${config.orgUrl}/analytics/wave/dashboard/${config.dashboardId}"
+                        style="width: 100%; height: 100%; border: none;"
+                        title="Tableau Dashboard">
+                    </iframe>
+                `;
             }
         }
 
