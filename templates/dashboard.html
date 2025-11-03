@@ -334,9 +334,10 @@
         async function initializeTableauNextSDK(config) {
             console.log('Initializing Tableau Next with config:', config);
 
-            // Skip SDK loading and go directly to iframe approach which is more reliable
-            console.log('Using iframe embedding approach for better compatibility');
-            await initializeAuthenticatedIframe(config);
+            // Salesforce blocks iframe embedding due to CSP frame-ancestors policy
+            // Use popup window approach instead
+            console.log('Using popup window approach due to Salesforce CSP restrictions');
+            await initializePopupDashboard(config);
         }
 
         function loadSDKViaScript(config) {
@@ -489,6 +490,172 @@
             }
 
             console.log('Authenticated iframe initialized');
+        }
+
+        async function initializePopupDashboard(config) {
+            console.log('Setting up popup dashboard approach');
+
+            const container = document.getElementById('analytics-container');
+
+            // Create a user-friendly interface for opening the dashboard
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; text-align: center; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                    <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 500px;">
+                        <div style="margin-bottom: 20px;">
+                            <svg width="64" height="64" viewBox="0 0 64 64" style="margin-bottom: 16px;">
+                                <rect width="64" height="64" rx="8" fill="#1B96FF"/>
+                                <path d="M16 24h32v4H16zm0 8h24v4H16zm0 8h28v4H16z" fill="white"/>
+                            </svg>
+                        </div>
+
+                        <h2 style="margin: 0 0 16px 0; color: #333; font-size: 24px; font-weight: 600;">
+                            Tableau Next Dashboard
+                        </h2>
+
+                        <p style="margin: 0 0 24px 0; color: #666; line-height: 1.5;">
+                            Due to Salesforce security policies, the dashboard will open in a new window for the best experience.
+                        </p>
+
+                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                            <button
+                                onclick="openDashboardPopup('${config.instanceUrl}', '${config.accessToken}', '${config.dashboardId}')"
+                                style="
+                                    background: #1B96FF;
+                                    color: white;
+                                    border: none;
+                                    padding: 12px 24px;
+                                    border-radius: 6px;
+                                    font-size: 16px;
+                                    font-weight: 500;
+                                    cursor: pointer;
+                                    transition: background 0.2s;
+                                "
+                                onmouseover="this.style.background='#0678d4'"
+                                onmouseout="this.style.background='#1B96FF'"
+                            >
+                                📊 Open Dashboard
+                            </button>
+
+                            <button
+                                onclick="tryEmbeddedView('${config.instanceUrl}', '${config.accessToken}', '${config.dashboardId}')"
+                                style="
+                                    background: #fff;
+                                    color: #1B96FF;
+                                    border: 2px solid #1B96FF;
+                                    padding: 10px 24px;
+                                    border-radius: 6px;
+                                    font-size: 16px;
+                                    font-weight: 500;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                "
+                                onmouseover="this.style.background='#f8f9fa'"
+                                onmouseout="this.style.background='#fff'"
+                            >
+                                🔗 Try Embedded View
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                            <small style="color: #888; line-height: 1.4;">
+                                Dashboard ID: <code style="background: #f1f3f4; padding: 2px 6px; border-radius: 3px;">${config.dashboardId}</code>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add global functions for dashboard interaction
+            window.openDashboardPopup = function(instanceUrl, accessToken, dashboardId) {
+                const frontdoorUrl = instanceUrl + '/secur/frontdoor.jsp?sid=' + accessToken + '&retURL=' + encodeURIComponent('/analytics/wave/dashboard/' + dashboardId);
+
+                const popup = window.open(
+                    frontdoorUrl,
+                    'tableau-dashboard',
+                    'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
+                );
+
+                if (popup) {
+                    popup.focus();
+                    console.log('Dashboard popup opened successfully');
+                } else {
+                    alert('Popup blocked! Please allow popups for this site and try again.');
+                }
+            };
+
+            window.tryEmbeddedView = function(instanceUrl, accessToken, dashboardId) {
+                console.log('Attempting embedded view...');
+
+                // Try a different approach using a server-side proxy
+                const container = document.getElementById('analytics-container');
+                container.innerHTML =
+                    '<div style="height: 100%; position: relative;">' +
+                        '<div style="position: absolute; top: 10px; right: 10px; z-index: 1000;">' +
+                            '<button onclick="initializePopupDashboard({instanceUrl: \'' + instanceUrl + '\', accessToken: \'' + accessToken + '\', dashboardId: \'' + dashboardId + '\'})" ' +
+                                    'style="background: #ff6b6b; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">' +
+                                '← Back to Options' +
+                            '</button>' +
+                        '</div>' +
+                        '<div style="padding: 20px; text-align: center; margin-top: 50px;">' +
+                            '<h3 style="color: #666;">Embedded View Attempt</h3>' +
+                            '<p style="color: #888; margin-bottom: 20px;">Trying to load dashboard in embedded mode...</p>' +
+                            '<div style="margin: 20px 0;">' +
+                                '<div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1B96FF; border-radius: 50%; animation: spin 1s linear infinite;"></div>' +
+                            '</div>' +
+                            '<div style="margin-top: 30px; background: #f8f9fa; padding: 15px; border-radius: 6px; max-width: 400px; margin-left: auto; margin-right: auto;">' +
+                                '<p style="margin: 0; color: #666; font-size: 14px;">' +
+                                    '<strong>Note:</strong> If this doesn\'t work within 10 seconds, please use the "Open Dashboard" button for the best experience.' +
+                                '</p>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+
+                // Add CSS animation for spinner
+                if (!document.getElementById('spinner-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'spinner-style';
+                    style.textContent =
+                        '@keyframes spin {' +
+                            '0% { transform: rotate(0deg); }' +
+                            '100% { transform: rotate(360deg); }' +
+                        '}';
+                    document.head.appendChild(style);
+                }
+
+                // Try to create an iframe with different approach after a delay
+                setTimeout(() => {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = '/api/dashboard-proxy?dashboardId=' + dashboardId + '&token=' + accessToken;
+                    iframe.style.cssText = 'width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0;';
+                    iframe.title = 'Tableau Dashboard (Proxy)';
+
+                    iframe.onload = () => {
+                        console.log('Proxy iframe loaded');
+                    };
+
+                    iframe.onerror = () => {
+                        console.error('Proxy iframe failed');
+                        setTimeout(() => {
+                            initializePopupDashboard({instanceUrl, accessToken, dashboardId});
+                        }, 2000);
+                    };
+
+                    container.appendChild(iframe);
+                }, 2000);
+
+                // Fallback to popup after 10 seconds
+                setTimeout(() => {
+                    if (container.querySelector('iframe')) {
+                        // If iframe is there but might not be working properly
+                        const fallbackDiv = document.createElement('div');
+                        fallbackDiv.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px;';
+                        fallbackDiv.innerHTML = 'Having trouble? <a href="#" onclick="window.openDashboardPopup(\'' + instanceUrl + '\', \'' + accessToken + '\', \'' + dashboardId + '\'); return false;" style="color: #1B96FF; text-decoration: underline;">Open in popup instead</a>';
+                        container.appendChild(fallbackDiv);
+                    }
+                }, 10000);
+            };
+
+            console.log('Popup dashboard interface initialized');
         }
 
         function handleKeyPress(event) {

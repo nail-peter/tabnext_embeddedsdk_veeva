@@ -231,6 +231,72 @@ def agentforce_proxy():
 
     return jsonify(response.json()), response.status_code
 
+@app.route('/api/dashboard-proxy')
+def dashboard_proxy():
+    """Proxy endpoint for dashboard embedding (experimental)"""
+    if 'access_token' not in session:
+        return "Authentication required", 401
+
+    dashboard_id = request.args.get('dashboardId')
+    token = request.args.get('token', session.get('access_token'))
+
+    if not dashboard_id:
+        return "Dashboard ID required", 400
+
+    # Create a simple HTML page that attempts to load the dashboard
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Tableau Dashboard Proxy</title>
+        <style>
+            body {{ margin: 0; padding: 20px; font-family: Arial, sans-serif; }}
+            .message {{ text-align: center; padding: 40px; color: #666; }}
+            .redirect-link {{
+                display: inline-block;
+                background: #1B96FF;
+                color: white;
+                padding: 12px 24px;
+                text-decoration: none;
+                border-radius: 6px;
+                margin-top: 20px;
+            }}
+            .redirect-link:hover {{ background: #0678d4; }}
+        </style>
+    </head>
+    <body>
+        <div class="message">
+            <h2>Dashboard Access</h2>
+            <p>Due to Salesforce security policies, the dashboard cannot be embedded directly.</p>
+            <p>Click the link below to open the dashboard in Salesforce:</p>
+            <a href="{session.get('instance_url')}/secur/frontdoor.jsp?sid={token}&retURL={'/analytics/wave/dashboard/' + dashboard_id}"
+               target="_blank"
+               class="redirect-link">
+                Open Dashboard in Salesforce
+            </a>
+            <p style="margin-top: 30px; font-size: 14px; color: #888;">
+                Dashboard ID: {dashboard_id}
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
+    response = app.response_class(
+        response=html_content,
+        status=200,
+        mimetype='text/html'
+    )
+
+    # Add headers to prevent caching
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+
+    return response
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
