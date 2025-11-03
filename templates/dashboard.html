@@ -349,9 +349,18 @@
                 console.warn('Note: SDK loading may fail due to Salesforce CORS/CSP restrictions');
                 await initializeOfficialTableauNextSDK(config);
             } catch (sdkError) {
-                console.error('Official SDK failed, falling back to popup approach:', sdkError);
-                console.log('💡 Tip: Add ?skipSDK=true to URL to skip SDK attempts');
-                await initializePopupDashboard(config);
+                console.error('Official SDK failed:', sdkError);
+                console.log('Error type:', sdkError.name);
+                console.log('Error message:', sdkError.message);
+
+                // Check if it's a service registration error
+                if (sdkError.message && sdkError.message.includes('No class registered for service')) {
+                    console.log('🔧 Detected SDK service registration issue - trying direct iframe approach');
+                    await initializeDirectIframeApproach(config);
+                } else {
+                    console.log('💡 Tip: Add ?skipSDK=true to URL to skip SDK attempts');
+                    await initializePopupDashboard(config);
+                }
             }
         }
 
@@ -414,18 +423,39 @@
                 }
 
                 // Initialize the SDK exactly as in the official documentation
-                await initializeAnalyticsSdk(sdkConfig);
-                console.log('Analytics SDK initialized');
+                console.log('Initializing Analytics SDK with config:', sdkConfig);
+
+                try {
+                    await initializeAnalyticsSdk(sdkConfig);
+                    console.log('Analytics SDK initialized successfully');
+
+                    // Add a small delay to ensure SDK is fully ready
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    console.log('SDK ready delay completed');
+
+                } catch (sdkInitError) {
+                    console.error('SDK initialization failed:', sdkInitError);
+                    throw new Error(`SDK initialization failed: ${sdkInitError.message}`);
+                }
 
                 // Create dashboard exactly as in the official example with proper sizing
-                const dashboard = new AnalyticsDashboard({
-                    parentIdOrElement: 'analytics-container',
-                    idOrApiName: config.dashboardId,
-                    height: '100%',
-                    width: '100%'
-                });
+                console.log('Creating dashboard with ID:', config.dashboardId);
 
-                console.log('Dashboard object created, rendering...');
+                let dashboard;
+                try {
+                    dashboard = new AnalyticsDashboard({
+                        parentIdOrElement: 'analytics-container',
+                        idOrApiName: config.dashboardId,
+                        height: '100%',
+                        width: '100%'
+                    });
+                    console.log('Dashboard object created successfully');
+                } catch (dashboardCreateError) {
+                    console.error('Dashboard creation failed:', dashboardCreateError);
+                    throw new Error(`Dashboard creation failed: ${dashboardCreateError.message}`);
+                }
+
+                console.log('Starting dashboard rendering...');
 
                 // Show loading indicator
                 const container = document.getElementById('analytics-container');
@@ -447,13 +477,15 @@
 
                 // Add timeout and better error handling for rendering
                 try {
-                    console.log('Starting dashboard render...');
+                    console.log('Calling dashboard.render()...');
 
-                    // Set a timeout for rendering
+                    // Set a longer timeout for rendering (60 seconds)
                     const renderPromise = dashboard.render();
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Dashboard render timeout after 30 seconds')), 30000)
+                        setTimeout(() => reject(new Error('Dashboard render timeout after 60 seconds')), 60000)
                     );
+
+                    console.log('Waiting for dashboard render to complete...');
 
                     await Promise.race([renderPromise, timeoutPromise]);
                     console.log('✅ Dashboard rendered successfully using official SDK!');
@@ -884,6 +916,97 @@
             };
 
             console.log('Popup dashboard interface initialized');
+        }
+
+        async function initializeDirectIframeApproach(config) {
+            console.log('Using direct iframe approach for dashboard embedding');
+
+            const container = document.getElementById('analytics-container');
+
+            // Create authenticated URLs for direct iframe embedding
+            const dashboardUrls = [
+                // Primary: Frontdoor URL with dashboard redirect
+                `${config.instanceUrl}/secur/frontdoor.jsp?sid=${config.accessToken}&retURL=${encodeURIComponent('/analytics/wave/dashboard/' + config.dashboardId)}`,
+
+                // Alternative: Direct dashboard URL with session
+                `${config.orgUrl}/analytics/wave/dashboard/${config.dashboardId}?sessionId=${config.accessToken}`,
+
+                // Lightning approach
+                `${config.orgUrl}/lightning/r/Dashboard/${config.dashboardId}/view`
+            ];
+
+            console.log('Trying direct iframe with authenticated URLs');
+
+            // Try the first URL and provide fallbacks
+            let currentUrlIndex = 0;
+
+            function loadIframe(urlIndex = 0) {
+                if (urlIndex >= dashboardUrls.length) {
+                    // All URLs failed, show popup interface
+                    console.warn('All iframe URLs failed, falling back to popup');
+                    initializePopupDashboard(config);
+                    return;
+                }
+
+                const iframeUrl = dashboardUrls[urlIndex];
+                console.log(`Trying iframe URL ${urlIndex + 1}:`, iframeUrl);
+
+                container.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%;">
+                        <div id="iframe-loading" style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            text-align: center;
+                            z-index: 10;
+                            background: rgba(255,255,255,0.9);
+                            padding: 20px;
+                            border-radius: 8px;
+                        ">
+                            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1B96FF; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
+                            <p style="margin: 0; color: #666;">Loading Dashboard...</p>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #888;">Attempt ${urlIndex + 1} of ${dashboardUrls.length}</p>
+                        </div>
+                        <iframe
+                            id="dashboard-iframe"
+                            src="${iframeUrl}"
+                            style="width: 100%; height: 100%; border: none; background: white;"
+                            title="Tableau Dashboard"
+                            onload="handleDirectIframeLoad()"
+                            onerror="handleDirectIframeError(${urlIndex})">
+                        </iframe>
+                    </div>
+                `;
+            }
+
+            // Global functions for iframe handling
+            window.handleDirectIframeLoad = function() {
+                console.log('✅ Direct iframe loaded successfully');
+                const loadingDiv = document.getElementById('iframe-loading');
+                if (loadingDiv) {
+                    loadingDiv.style.display = 'none';
+                }
+            };
+
+            window.handleDirectIframeError = function(urlIndex) {
+                console.warn(`Iframe URL ${urlIndex + 1} failed, trying next...`);
+                setTimeout(() => {
+                    loadIframe(urlIndex + 1);
+                }, 2000);
+            };
+
+            // Start loading with the first URL
+            loadIframe(0);
+
+            // Set a timeout to try next URL if current one doesn't load
+            setTimeout(() => {
+                const loadingDiv = document.getElementById('iframe-loading');
+                if (loadingDiv && loadingDiv.style.display !== 'none') {
+                    console.log('Iframe taking too long, trying next URL...');
+                    loadIframe(1);
+                }
+            }, 10000);
         }
 
         function handleKeyPress(event) {
