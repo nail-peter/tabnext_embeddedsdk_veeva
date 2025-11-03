@@ -4,7 +4,7 @@ import requests
 import base64
 import hashlib
 import secrets
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -296,6 +296,11 @@ def dashboard_proxy():
     response.headers['Expires'] = '0'
 
     return response
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """Serve static files including the Analytics SDK"""
+    return send_from_directory('static', filename)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

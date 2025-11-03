@@ -367,55 +367,67 @@
             console.log('SDK Config:', sdkConfig);
 
             try {
-                // Try multiple possible SDK URLs
-                const possibleSdkUrls = [
-                    `${config.instanceUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
-                    `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
-                    `${config.instanceUrl}/resource/analytics-sdk`,
-                    `${config.orgUrl}/resource/analytics-sdk`
-                ];
+                // Method 1: Try to use locally installed SDK first
+                console.log('Attempting to load locally installed SDK...');
+                let initializeAnalyticsSdk, AnalyticsDashboard;
 
-                let sdkLoaded = false;
-                let lastError = null;
+                try {
+                    // Try to import from locally hosted SDK
+                    const sdk = await import('./static/js/analytics-sdk.js');
+                    initializeAnalyticsSdk = sdk.initializeAnalyticsSdk;
+                    AnalyticsDashboard = sdk.AnalyticsDashboard;
+                    console.log('✅ Loaded SDK from local installation');
+                } catch (localError) {
+                    console.warn('Local SDK not found, trying remote URLs...');
 
-                for (const sdkSource of possibleSdkUrls) {
-                    try {
-                        console.log('Trying SDK from:', sdkSource);
+                    // Fallback: Try multiple possible remote SDK URLs
+                    const possibleSdkUrls = [
+                        `${config.instanceUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
+                        `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
+                        `${config.instanceUrl}/resource/analytics-sdk`,
+                        `${config.orgUrl}/resource/analytics-sdk`
+                    ];
 
-                        // Use dynamic import as in the official example
-                        const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(sdkSource);
+                    let sdkLoaded = false;
+                    let lastError = null;
 
-                        console.log('SDK imported successfully from:', sdkSource);
+                    for (const sdkSource of possibleSdkUrls) {
+                        try {
+                            console.log('Trying SDK from:', sdkSource);
 
-                        // Initialize the SDK exactly as in the official documentation
-                        await initializeAnalyticsSdk(sdkConfig);
-                        console.log('Analytics SDK initialized');
+                            // Use dynamic import as in the official example
+                            const sdk = await import(sdkSource);
+                            console.log('SDK imported successfully from:', sdkSource);
+                            sdkLoaded = true;
+                            break; // Exit the loop on success
 
-                        // Create dashboard exactly as in the official example
-                        const dashboard = new AnalyticsDashboard({
-                            parentIdOrElement: 'analytics-container',
-                            idOrApiName: config.dashboardId
-                        });
+                        } catch (urlError) {
+                            console.warn(`Failed to load SDK from ${sdkSource}:`, urlError);
+                            lastError = urlError;
+                            continue; // Try the next URL
+                        }
+                    }
 
-                        console.log('Dashboard object created, rendering...');
-
-                        // Render the dashboard
-                        await dashboard.render();
-                        console.log('✅ Dashboard rendered successfully using official SDK!');
-
-                        sdkLoaded = true;
-                        break; // Exit the loop on success
-
-                    } catch (urlError) {
-                        console.warn(`Failed to load SDK from ${sdkSource}:`, urlError);
-                        lastError = urlError;
-                        continue; // Try the next URL
+                    if (!sdkLoaded) {
+                        throw lastError || new Error('All remote SDK URLs failed');
                     }
                 }
 
-                if (!sdkLoaded) {
-                    throw lastError || new Error('All SDK URLs failed');
-                }
+                // Initialize the SDK exactly as in the official documentation
+                await initializeAnalyticsSdk(sdkConfig);
+                console.log('Analytics SDK initialized');
+
+                // Create dashboard exactly as in the official example
+                const dashboard = new AnalyticsDashboard({
+                    parentIdOrElement: 'analytics-container',
+                    idOrApiName: config.dashboardId
+                });
+
+                console.log('Dashboard object created, rendering...');
+
+                // Render the dashboard
+                await dashboard.render();
+                console.log('✅ Dashboard rendered successfully using official SDK!');
 
             } catch (importError) {
                 console.error('All SDK loading methods failed:', importError);
