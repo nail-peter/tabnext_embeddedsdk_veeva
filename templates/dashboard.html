@@ -334,12 +334,23 @@
         async function initializeTableauNextSDK(config) {
             console.log('Initializing Tableau Next with config:', config);
 
+            // Check if we should skip SDK attempts (for debugging)
+            const skipSDK = new URLSearchParams(window.location.search).get('skipSDK') === 'true';
+
+            if (skipSDK) {
+                console.log('Skipping SDK loading, going directly to popup approach');
+                await initializePopupDashboard(config);
+                return;
+            }
+
             try {
                 // Use the official Tableau Next SDK pattern
                 console.log('Attempting official Tableau Next SDK implementation...');
+                console.warn('Note: SDK loading may fail due to Salesforce CORS/CSP restrictions');
                 await initializeOfficialTableauNextSDK(config);
             } catch (sdkError) {
                 console.error('Official SDK failed, falling back to popup approach:', sdkError);
+                console.log('💡 Tip: Add ?skipSDK=true to URL to skip SDK attempts');
                 await initializePopupDashboard(config);
             }
         }
@@ -356,37 +367,63 @@
             console.log('SDK Config:', sdkConfig);
 
             try {
-                // Method 1: Try dynamic import with the official SDK source
-                const sdkSource = `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`;
-                console.log('Importing SDK from:', sdkSource);
+                // Try multiple possible SDK URLs
+                const possibleSdkUrls = [
+                    `${config.instanceUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
+                    `${config.orgUrl}/analytics/wave/web/proto/sdk/analytics-sdk.js`,
+                    `${config.instanceUrl}/resource/analytics-sdk`,
+                    `${config.orgUrl}/resource/analytics-sdk`
+                ];
 
-                // Use dynamic import as in the official example
-                const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(sdkSource);
+                let sdkLoaded = false;
+                let lastError = null;
 
-                console.log('SDK imported successfully');
+                for (const sdkSource of possibleSdkUrls) {
+                    try {
+                        console.log('Trying SDK from:', sdkSource);
 
-                // Initialize the SDK exactly as in the official documentation
-                await initializeAnalyticsSdk(sdkConfig);
-                console.log('Analytics SDK initialized');
+                        // Use dynamic import as in the official example
+                        const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(sdkSource);
 
-                // Create dashboard exactly as in the official example
-                const dashboard = new AnalyticsDashboard({
-                    parentIdOrElement: 'analytics-container',
-                    idOrApiName: config.dashboardId
-                });
+                        console.log('SDK imported successfully from:', sdkSource);
 
-                console.log('Dashboard object created, rendering...');
+                        // Initialize the SDK exactly as in the official documentation
+                        await initializeAnalyticsSdk(sdkConfig);
+                        console.log('Analytics SDK initialized');
 
-                // Render the dashboard
-                await dashboard.render();
-                console.log('✅ Dashboard rendered successfully using official SDK!');
+                        // Create dashboard exactly as in the official example
+                        const dashboard = new AnalyticsDashboard({
+                            parentIdOrElement: 'analytics-container',
+                            idOrApiName: config.dashboardId
+                        });
+
+                        console.log('Dashboard object created, rendering...');
+
+                        // Render the dashboard
+                        await dashboard.render();
+                        console.log('✅ Dashboard rendered successfully using official SDK!');
+
+                        sdkLoaded = true;
+                        break; // Exit the loop on success
+
+                    } catch (urlError) {
+                        console.warn(`Failed to load SDK from ${sdkSource}:`, urlError);
+                        lastError = urlError;
+                        continue; // Try the next URL
+                    }
+                }
+
+                if (!sdkLoaded) {
+                    throw lastError || new Error('All SDK URLs failed');
+                }
 
             } catch (importError) {
-                console.error('SDK import failed:', importError);
+                console.error('All SDK loading methods failed:', importError);
+                console.log('SDK loading is blocked by CORS/CSP policies');
 
-                // Fallback: Try loading SDK via script tag and accessing global
-                console.log('Trying script tag approach...');
-                await loadSDKViaScriptTag(config, sdkConfig);
+                // Since SDK loading consistently fails due to Salesforce CSP restrictions,
+                // go directly to the popup approach which is more reliable
+                throw importError;
             }
         }
 
