@@ -1,30 +1,83 @@
 {
-  "name": "boehringer-tableau-agentforce-app",
+  "name": "salesforce-analytics-template",
   "version": "1.0.0",
-  "description": "Boehringer Ingelheim Animal Health - Tableau Next & Agentforce Integration",
+  "description": "Plug-and-play template for Salesforce Analytics Embedding SDK with industry-specific configurations and Veeva CRM integration",
   "main": "app.py",
   "scripts": {
-    "build": "npm install",
+    "install": "npm install && pip install -r requirements.txt",
+    "setup": "bash scripts/setup.sh",
     "start": "python app.py",
-    "dev": "python app.py"
+    "dev": "python app.py",
+    "build": "npm install",
+    "test": "python -m pytest tests/",
+    "lint": "eslint static/js/ --ext .js",
+    "deploy:heroku": "bash scripts/deploy-heroku.sh",
+    "deploy:aws": "bash scripts/deploy-aws.sh",
+    "package:veeva": "bash scripts/veeva-package.sh",
+    "docs:serve": "python -m http.server 8080 -d docs/",
+    "validate:config": "python scripts/validate-config.py"
   },
   "dependencies": {
-    "@salesforce/analytics-embedding-sdk": "^0.0.6-beta",
-    "axios": "^1.5.0",
-    "express": "^4.18.2"
+    "@salesforce/analytics-embedding-sdk": "^0.0.7-beta",
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "prettier": "^3.0.0",
+    "jest": "^29.7.0",
+    "@types/node": "^20.8.0"
   },
   "engines": {
-    "node": "18.x",
-    "python": "3.11.x"
+    "node": ">=18.0.0",
+    "python": ">=3.11.0"
   },
   "keywords": [
-    "tableau",
-    "agentforce",
     "salesforce",
+    "tableau-next",
+    "agentforce",
+    "analytics",
     "embedding",
-    "animal-health",
-    "analytics"
+    "template",
+    "pharmaceutical",
+    "healthcare",
+    "veeva-crm",
+    "life-sciences",
+    "business-intelligence",
+    "dashboard",
+    "sdk"
   ],
-  "author": "Boehringer Ingelheim",
-  "license": "MIT"
+  "author": "Salesforce Analytics Template",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/salesforce-analytics-template.git"
+  },
+  "homepage": "https://github.com/your-org/salesforce-analytics-template#readme",
+  "bugs": {
+    "url": "https://github.com/your-org/salesforce-analytics-template/issues"
+  },
+  "config": {
+    "template": {
+      "industry_templates": [
+        "pharma",
+        "healthcare",
+        "generic"
+      ],
+      "supported_platforms": [
+        "heroku",
+        "aws",
+        "azure",
+        "gcp"
+      ],
+      "veeva_integration": true,
+      "sdk_version": "0.0.7-beta"
+    }
+  },
+  "funding": {
+    "type": "sponsorship",
+    "url": "https://github.com/sponsors/salesforce"
+  }
 }

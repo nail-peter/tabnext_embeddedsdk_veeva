@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<!--
+Veeva CRM Bridge Component
+- Optimized for embedding in Veeva CRM iframes
+- Minimal design focused on analytics display
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Analytics Dashboard</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+        }
+
+        .veeva-container {
+            height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 16px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 40px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .dashboard-container {
+            flex: 1;
+            position: relative;
+            background: white;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(248, 249, 250, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 12px;
+            border: 1px solid #f5c6cb;
+            font-size: 0.9rem;
+        }
+
+        /* Mobile optimizations for Veeva tablets */
+        @media (max-width: 1024px) {
+            .header {
+                padding: 6px 12px;
+                min-height: 36px;
+            }
+
+            .header h1 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="veeva-container">
+        <!-- Minimal Header -->
+        <div class="header">
+            <h1>📊 Analytics Dashboard</h1>
+            <div class="status status-loading" id="dashboard-status">
+                Loading...
+            </div>
+        </div>
+
+        <!-- Dashboard Container -->
+        <div class="dashboard-container" id="dashboard-container">
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="spinner"></div>
+                <div>Loading Analytics...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dashboardInitialized = false;
+        let config = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Initializing Analytics Dashboard');
+
+            try {
+                // Get configuration from backend
+                const response = await fetch('/api/tableau-config');
+                if (!response.ok) {
+                    throw new Error(`Configuration failed: ${response.status}`);
+                }
+
+                config = await response.json();
+                console.log('✅ Configuration loaded');
+
+                // Initialize dashboard
+                await initializeTableauDashboard();
+
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                showError('Failed to initialize analytics: ' + error.message);
+            }
+        });
+
+        /**
+         * Initialize Tableau Dashboard
+         */
+        async function initializeTableauDashboard() {
+            if (dashboardInitialized) return;
+
+            try {
+                updateStatus('loading', 'Loading SDK...');
+
+                // Import Analytics SDK
+                const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(
+                    /* webpackIgnore: true */ '/static/js/analytics-sdk.js'
+                );
+
+                console.log('✅ SDK loaded');
+                updateStatus('loading', 'Initializing...');
+
+                // Initialize SDK
+                await initializeAnalyticsSdk({
+                    authCredential: config.authCredential,
+                    orgUrl: config.orgUrl
+                });
+
+                updateStatus('loading', 'Creating dashboard...');
+
+                // Create dashboard
+                const dashboardContainer = document.getElementById('dashboard-container');
+                const dashboard = new AnalyticsDashboard({
+                    parentIdOrElement: dashboardContainer,
+                    idOrApiName: config.dashboardId
+                });
+
+                console.log('📊 Dashboard created, rendering...');
+                updateStatus('loading', 'Rendering...');
+
+                // Render dashboard
+                await dashboard.render();
+
+                console.log('🎉 Dashboard rendered successfully!');
+
+                // Hide loading overlay
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+
+                updateStatus('ready', 'Ready');
+                dashboardInitialized = true;
+
+            } catch (error) {
+                console.error('❌ Dashboard initialization failed:', error);
+                updateStatus('error', 'Failed');
+                showError(`Dashboard loading failed: ${error.message}`);
+
+                // Hide loading overlay
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+            }
+        }
+
+        /**
+         * Update status indicator
+         */
+        function updateStatus(type, message) {
+            const statusElement = document.getElementById('dashboard-status');
+            if (statusElement) {
+                statusElement.className = `status status-${type}`;
+                statusElement.textContent = message;
+            }
+        }
+
+        /**
+         * Show error message
+         */
+        function showError(message) {
+            const container = document.getElementById('dashboard-container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `
+                <strong>⚠️ Error:</strong> ${message}
+                <br><br>
+                <button onclick="location.reload()" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                    🔄 Retry
+                </button>
+            `;
+            container.appendChild(errorDiv);
+        }
+
+        // Global error handlers
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+        });
+    </script>
+</body>
+</html>
