@@ -186,7 +186,7 @@ Veeva CRM Bridge Component
             try {
                 updateStatus('loading', 'Loading SDK...');
 
-                // Import Analytics SDK
+                // Import Analytics SDK components
                 const { initializeAnalyticsSdk, AnalyticsDashboard } = await import(
                     /* webpackIgnore: true */ '/static/js/analytics-sdk.js'
                 );
@@ -202,11 +202,21 @@ Veeva CRM Bridge Component
 
                 updateStatus('loading', 'Creating dashboard...');
 
-                // Create dashboard
+                // Create dashboard with proper container reference
                 const dashboardContainer = document.getElementById('dashboard-container');
                 const dashboard = new AnalyticsDashboard({
                     parentIdOrElement: dashboardContainer,
                     idOrApiName: config.dashboardId
+                });
+
+                // Add event listeners for better error handling
+                dashboard.addEventListener('COMPONENT_LOADED', () => {
+                    console.log('✅ Dashboard loaded successfully');
+                });
+
+                dashboard.addEventListener('ERROR', (error) => {
+                    console.error('❌ Dashboard error:', error);
+                    throw error;
                 });
 
                 console.log('📊 Dashboard created, rendering...');

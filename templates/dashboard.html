@@ -358,10 +358,20 @@
                 // Get direct DOM reference (like the working demo)
                 const dashboardContainer = document.getElementById('dashboard-container');
 
-                // Create dashboard instance exactly like the working demo
+                // Create dashboard instance with event handling
                 const dashboard = new AnalyticsDashboard({
                     parentIdOrElement: dashboardContainer,
                     idOrApiName: config.dashboardId
+                });
+
+                // Add event listeners per official documentation
+                dashboard.addEventListener('COMPONENT_LOADED', () => {
+                    console.log('✅ Dashboard loaded and ready for interaction');
+                });
+
+                dashboard.addEventListener('ERROR', (error) => {
+                    console.error('❌ Dashboard error:', error);
+                    throw error;
                 });
 
                 console.log('📊 Dashboard object created, rendering...');
@@ -413,54 +423,34 @@
 
                 console.log('🔗 Stored credentials in localStorage');
 
-                // Import SDK and debug what's available
-                const sdkImport = await import(
+                // Import SDK components according to official documentation
+                const { AnalyticsAgent, AgentContextType } = await import(
                     /* webpackIgnore: true */ '/static/js/analytics-sdk.js'
                 );
 
                 console.log('✅ SDK imported successfully');
-                console.log('🔍 Available exports:', Object.keys(sdkImport));
-                console.log('🔍 Full SDK object:', sdkImport);
-                console.log('🔍 AnalyticsAgent type:', typeof sdkImport.AnalyticsAgent);
-                console.log('🔍 AnalyticsAgent value:', sdkImport.AnalyticsAgent);
 
-                // Check if there's a default export
-                if (sdkImport.default) {
-                    console.log('🔍 Default export keys:', Object.keys(sdkImport.default));
-                    console.log('🔍 Default.AnalyticsAgent type:', typeof sdkImport.default.AnalyticsAgent);
-                }
-
-                // Check for initialization functions
-                const possibleInitFunctions = ['initializeAnalyticsSdk', 'init', 'initialize', 'setup'];
-                possibleInitFunctions.forEach(funcName => {
-                    if (sdkImport[funcName]) {
-                        console.log(`🔍 Found initialization function: ${funcName} (${typeof sdkImport[funcName]})`);
-                    }
-                });
-
-                // Try to get AnalyticsAgent from different possible locations
-                let AnalyticsAgent = sdkImport.AnalyticsAgent ||
-                                   sdkImport.default?.AnalyticsAgent ||
-                                   sdkImport.default ||
-                                   null;
-
-                console.log('🔧 Resolved AnalyticsAgent:', typeof AnalyticsAgent);
-
-                if (!AnalyticsAgent) {
-                    throw new Error('AnalyticsAgent not found in SDK exports');
-                }
-
-                if (typeof AnalyticsAgent !== 'function') {
-                    throw new Error(`AnalyticsAgent is not a function, it's a ${typeof AnalyticsAgent}`);
-                }
-
-                // Create agent using exact working demo pattern
+                // Create agent with required context parameters per official docs
                 const agent = new AnalyticsAgent({
                     parentIdOrElement: agentContainer,
-                    idOrApiName: "Analytics_and_Visualization"  // Your actual agent API name
+                    idOrApiName: config.agentId || "Analytics_and_Visualization",
+                    contextType: AgentContextType.DASHBOARD,
+                    contextTypeIdOrApiName: config.dashboardId,
+                    showHeader: true,
+                    showHeaderActions: true
                 });
 
-                console.log('🔧 AnalyticsAgent created, rendering...');
+                console.log('🔧 AnalyticsAgent created, adding event listeners...');
+
+                // Add event listeners per official documentation
+                agent.addEventListener('COMPONENT_LOADED', () => {
+                    console.log('✅ AnalyticsAgent loaded and ready for interaction');
+                });
+
+                agent.addEventListener('ERROR', (error) => {
+                    console.error('❌ AnalyticsAgent error:', error);
+                    throw error;
+                });
 
                 // Render the agent
                 await agent.render();
